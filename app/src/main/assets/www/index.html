@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <style type="text/css">
+        .centered {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        /* bring your own prefixes */
+        transform: translate(-50%, -50%);
+        }
+        .activeArea {
+        min-width: 490px;
+        display: inline-block;
+        max-width:80%;
+        max-height:75%;
+        padding:25px;
+        border: 5px solid white;
+        border-radius:20px;
+        }
+        .entryArea {
+        min-width:440px;
+        max-width:100%;
+        width:100%;
+        box-sizing:border-box;
+        position:relative;
+        }
+        .buttonGeneric {
+        min-width:100px;
+        position:relative;
+        }
+    </style>
+</head>
+<body style="background:#BABABA">
+<div id="group-root" class="centered activeArea" style="background:#73AD21">
+    <textarea id="entry-text" class="entryArea" rows="4" style="float:top"></textarea>
+
+    <button id="button-send" class="buttonGeneric" style="float:left">&lt; OUT</button>
+    <button id="button-recv" class="buttonGeneric" style="float:right" data-clipboard-target="entry-text">IN &gt;</button>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"
+        type="text/javascript"></script>
+<script src="script/ZeroClipboard.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function updateButtons() {
+        $("#button-send").prop("disabled", !$("#entry-text").val());
+        $("#button-recv").prop("disabled", !$("#entry-text").val());
+    }
+    updateButtons();
+
+    $("#entry-text").prop("disabled", true);
+    $("#entry-text").bind("input propertychange", updateButtons);
+
+    // Establish remote clipboard connection
+    $.get("clipboard", function(data) {
+        $("#entry-text").val(data.text);
+        $("#button-send").prop("disabled", !$("#entry-text").val());
+        $("#button-recv").prop("disabled", !$("#entry-text").val());
+
+        var socket = new WebSocket("ws://" + data.host + ":" + data.port);
+
+        socket.onopen = function() {
+            $("#entry-text").prop("disabled", false);
+        };
+        socket.onclose = function() {
+            $("#entry-text").val("");
+            $("#entry-text").prop("disabled", true);
+            $("#button-send").prop("disabled", !$("#entry-text").val());
+            $("#button-recv").prop("disabled", !$("#entry-text").val());
+
+            location.reload();
+        };
+        socket.onmessage = function(message) {
+            $("#entry-text").val(message.data);
+        }
+        socket.onerror = function(error) {
+            alert("Error occurred: " + error.message);
+        };
+
+        $("#button-send").click(function() {
+            socket.send($("#entry-text").val());
+        });
+    });
+
+    new ZeroClipboard(document.getElementById("button-recv"));
+</script>
+
+</body>
+</html>

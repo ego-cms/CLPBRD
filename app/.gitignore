@@ -1,0 +1,6 @@
+# Gradle files
+/build
+
+# Project-local Gradle properties
+gradle.properties
+*.jks

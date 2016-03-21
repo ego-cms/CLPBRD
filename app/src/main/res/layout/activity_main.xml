@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingLeft="@dimen/activity_horizontal_margin"
+		android:paddingRight="@dimen/activity_horizontal_margin"
+		android:paddingTop="@dimen/activity_vertical_margin">
+
+		<android.support.v7.widget.SwitchCompat
+			android:id="@+id/switch_service"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="10dp"
+			android:layout_marginTop="10dp"
+			android:text="@string/label_service"
+			android:textSize="18sp"/>
+
+		<TextView
+			android:id="@+id/text_server_address"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/switch_service"
+			android:layout_marginBottom="20dp"
+			android:gravity="center"
+			android:paddingBottom="15dp"
+			android:paddingTop="10dp"
+			android:text="http://192.168.1.37:8080"
+			android:textSize="24dp"/>
+
+		<TextView
+			android:id="@+id/__text_title"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/text_server_address"
+			android:text="@string/label_clip_data_section"
+			android:textSize="20sp"/>
+
+		<TableLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/__text_title"
+			android:layout_marginBottom="10dp"
+			android:layout_marginTop="10dp"
+			android:stretchColumns="0,1">
+
+			<TableRow android:paddingBottom="10dp">
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_column="0"
+					android:text="@string/label_clip_label"
+					android:textSize="18sp"/>
+				<TextView
+					android:id="@+id/text_clip_label"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_column="1"
+					android:gravity="end"
+					android:text="@string/label_clip_label_value_unknown"
+					android:textSize="18sp"/>
+			</TableRow>
+
+			<TableRow>
+				<TextView
+					android:id="@+id/text_clip_mime_types_count"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_column="0"
+					android:text="@string/label_clip_mime_count"
+					android:textSize="18sp"/>
+				<TextView
+					android:id="@+id/text_clip_mime_types"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_column="1"
+					android:gravity="end"
+					android:textSize="18sp"/>
+			</TableRow>
+
+		</TableLayout>
+
+
+
+	</RelativeLayout>
+
+	<ListView
+		android:id="@+id/list_clip_items"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+
+</LinearLayout>
