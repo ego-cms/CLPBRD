@@ -7,6 +7,7 @@
 		<item name="colorPrimaryDark">@color/paletteBackground</item>
 		<item name="colorAccent">@color/paletteForeground</item>
 
+		<item name="android:buttonStyle">@style/Button.Generic</item>
 		<item name="android:textViewStyle">@style/TextView.Generic</item>
 		<item name="android:windowBackground">@drawable/bg_generic</item>
 	</style>
@@ -23,8 +24,16 @@
 		<item name="android:textColor">@color/paletteTextDefault</item>
 	</style>
 
+	<style name="TextAppearance.AppCompat.Button.Generic">
+		<item name="android:textColor">@color/paletteTextDefault</item>
+	</style>
+
 	<style name="TextView.Generic" parent="@android:style/Widget.DeviceDefault.TextView">
 		<item name="android:textAppearance">@style/TextAppearance.AppCompat.Generic</item>
+	</style>
+
+	<style name="Button.Generic" parent="@android:style/Widget.DeviceDefault.Button">
+		<item name="android:textAppearance">@style/TextAppearance.AppCompat.Button.Generic</item>
 	</style>
 
 </resources>

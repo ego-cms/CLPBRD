@@ -1,204 +1,92 @@
 package com.ego_cms.copypaste;
 
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
-import android.os.Build;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.widget.SwitchCompat;
-import android.util.Log;
+import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.view.View;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
-import com.ego_cms.copypaste.util.CommonUtils;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
+import com.ego_cms.copypaste.util.AndroidCommonUtils;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import solid.functions.SolidFunc1;
-import solid.stream.Stream;
+import butterknife.OnClick;
 
-public class MainActivity extends ActivityBaseCompat
-	implements ClipboardManager.OnPrimaryClipChangedListener {
+public class MainActivity extends ActivityBaseCompat {
 
 	private static final String TAG = "MainActivity";
 
 
-	@Bind(R.id.switch_service)
-	SwitchCompat switchService;
+	@Bind(R.id.group_service_controls)
+	View groupServiceControls;
 
-	@Bind(R.id.text_server_address)
-	TextView textServerAddress;
+	@Bind(R.id.button_service_toggle)
+	View buttonServiceToggle;
 
-	@Bind(R.id.text_clip_label)
-	TextView textClipLabel;
+	@Bind(R.id.button_scan_qr)
+	View buttonScanQR;
 
-	@Bind(R.id.text_clip_mime_types_count)
-	TextView textClipMimeTypesCount;
+	@Bind(R.id.group_network_address)
+	View groupNetworkAddress;
 
-	@Bind(R.id.text_clip_mime_types)
-	TextView textClipMimeTypes;
+	@Bind(R.id.button_show_qr)
+	View buttonShowQR;
 
-	@Bind(R.id.list_clip_items)
-	ListView listClipItems;
+	@Bind(R.id.text_network_address)
+	TextView textNetworkAddress;
 
 
-	private void updateClipDataDisplay() {
-		ClipData clipData = ((ClipboardManager) getSystemService(
-			CLIPBOARD_SERVICE)).getPrimaryClip();
-		ClipDescription description = clipData.getDescription();
+	@OnClick(R.id.button_service_toggle)
+	void onServiceToggleButtonClick() {
+		AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
+			R.drawable.bg_button_group_animated_forward);
 
-		StringBuilder sb = new StringBuilder();
-
-		for (int i = 0, imax = description.getMimeTypeCount(); i < imax; ++i) {
-			sb.append(description.getMimeType(i))
-				.append(",\n");
+		if (backgroundAnimated != null) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
+			backgroundAnimated.start();
 		}
-		int length = sb.length();
+	}
 
-		if (length > 2) {
-			sb.delete(length - 2, length);
-		}
-		textClipLabel.setText(description.getLabel());
-		textClipMimeTypesCount.setText(
-			getString(R.string.label_clip_mime_count, description.getMimeTypeCount()));
-		textClipMimeTypes.setText(sb.toString());
+	@OnClick(R.id.button_scan_qr)
+	void onScanQRButtonClick() {
+		/* Nothing to do */
+	}
 
-		ListAdapter adapter;
-		{
-			final String source[] = new String[]{
-				"content",
-				"type"
-			};
-			final int target[] = new int[]{
-				android.R.id.text1,
-				android.R.id.text2
-			};
-			Iterable<ClipData.Item> clipItems = () -> new Iterator<ClipData.Item>() {
+	@OnClick(R.id.button_show_qr)
+	void onShowQRButtonClick() {
+		/* Nothing to do */
+	}
 
-				int index;
-
-				@Override
-				public boolean hasNext() {
-					return index < clipData.getItemCount();
-				}
-
-				@Override
-				public ClipData.Item next() {
-					return clipData.getItemAt(index++);
-				}
-
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
-				}
-			};
-			adapter = new SimpleAdapter(this, Stream.stream(clipItems)
-				.map((SolidFunc1<ClipData.Item, Map<String, ?>>) value -> {
-					Map<String, Object> result = new HashMap<>();
-					{
-						CharSequence content;
-
-						if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
-							content = value.coerceToStyledText(this);
-						}
-						else {
-							content = value.coerceToText(this);
-						}
-						result.put(source[0], content);
-
-						String type;
-						{
-							if (value.getUri() != null) {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_uri) + " " + getString(
-										R.string.label_clip_item_coerced));
-							}
-							else if (value.getIntent() != null) {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_intent) + " "
-										+ getString(R.string.label_clip_item_coerced));
-							}
-							else if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN
-								&& value.getHtmlText() != null) {
-
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_html) + " " + getString(
-										R.string.label_clip_item_coerced));
-							}
-							else {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_text));
-							}
-						}
-						result.put(source[1], type);
-					}
-					return result;
-				})
-				.toSolidList(), R.layout.item_clip_item, source, target);
-		}
-		listClipItems.setAdapter(adapter);
+	@OnClick(R.id.button_contact_us)
+	void onContactUsButtonClick() {
+		startActivity(new Intent(Intent.ACTION_VIEW, // preserve new line
+			Uri.parse(getString(R.string.ego_cms_contact_url))));
 	}
 
 
-	private static final String KEY_SERVICE_IS_RUNNING = TAG + ".keyServiceIsRunning";
+	private void displayServiceEnabledState() {
+		groupNetworkAddress.setVisibility(View.VISIBLE);
+		groupServiceControls.setVisibility(View.INVISIBLE);
+	}
 
-	private void initializeView() {
-		KeyValueStorage kvs = CopyPasteApplication.get(this)
-			.getCommonKeyValueStorage();
-
-		switchService.setChecked(
-			CommonUtils.toPrimitive(kvs.load(KEY_SERVICE_IS_RUNNING, Boolean.class), false));
-		switchService.setOnCheckedChangeListener((buttonView, isChecked) -> {
-			if (isChecked) {
-				CopyPasteService.start(this);
-				textServerAddress.setVisibility(View.VISIBLE);
-			}
-			else {
-				CopyPasteService.stop(this);
-				textServerAddress.setVisibility(View.GONE);
-			}
-			kvs.store(KEY_SERVICE_IS_RUNNING, isChecked);
-		});
-		textServerAddress.setText(String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
-			BuildConfig.SERVER_PORT));
-
-		updateClipDataDisplay();
+	private void displayServiceDisabledState() {
+		groupNetworkAddress.setVisibility(View.INVISIBLE);
+		groupServiceControls.setVisibility(View.VISIBLE);
 	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main2);
-//		ButterKnife.bind(this);
-//		initializeView();
-//
-//		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-//			.addPrimaryClipChangedListener(this);
+		setContentView(R.layout.activity_main);
+		ButterKnife.bind(this);
+
+		displayServiceDisabledState();
 	}
 
 	@Override
 	protected void onDestroy() {
-//		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-//			.removePrimaryClipChangedListener(this);
-
 		ButterKnife.unbind(this);
 		super.onDestroy();
 	}
-
-	@Override
-	public void onPrimaryClipChanged() {
-		updateClipDataDisplay();
-		Log.d(TAG, ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip()
-			.toString());
-	}
-
-
 }
