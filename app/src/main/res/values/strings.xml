@@ -1,6 +1,12 @@
 <resources>
 	<string name="application_name">CopyPaste</string>
 
+	<!-- Home screen -->
+	<string name="label_promotion">Made with love by</string>
+	<string name="label_magic">Magic\nbutton</string>
+	<string name="label_service_hint">Send clipboard between your phone,\ndesktop or another phone.\n\nTurn service on and just copy and paste.</string>
+	<string name="label_service_browser_hint">Connect to this address in your browser</string>
+
 	<string name="label_clip_data_section">Current clipboard:</string>
 	<string name="label_clip_item_coerced">(coerced)</string>
 	<string name="label_clip_item_type" formatted="true">Item type: %s</string>

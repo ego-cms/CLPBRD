@@ -50,14 +50,17 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: '*.jar')
 
-    compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.android.support:animated-vector-drawable:23.2.1'
+    compile 'com.android.support:appcompat-v7:23.2.1'
     compile 'com.android.support:multidex:1.0.1'
+    compile 'com.android.support:support-vector-drawable:23.2.1'
     compile 'com.google.code.gson:gson:2.6.2'
     compile 'com.intellij:annotations:12.0@jar'
     compile 'com.jakewharton:butterknife:7.0.1'
     compile 'info.android15.solid:solid:1.0.9'
     compile 'org.nanohttpd:nanohttpd:2.3.0'
     compile 'org.nanohttpd:nanohttpd-websocket:2.3.0'
+    compile 'uk.co.chrisjenx:calligraphy:2.1.0'
 
     testCompile 'junit:junit:4.12'
 }

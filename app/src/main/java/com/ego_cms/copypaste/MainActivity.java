@@ -5,7 +5,6 @@ import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.View;
@@ -26,7 +25,7 @@ import butterknife.ButterKnife;
 import solid.functions.SolidFunc1;
 import solid.stream.Stream;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends ActivityBaseCompat
 	implements ClipboardManager.OnPrimaryClipChangedListener {
 
 	private static final String TAG = "MainActivity";
@@ -177,18 +176,18 @@ public class MainActivity extends AppCompatActivity
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		ButterKnife.bind(this);
-		initializeView();
-
-		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-			.addPrimaryClipChangedListener(this);
+		setContentView(R.layout.activity_main2);
+//		ButterKnife.bind(this);
+//		initializeView();
+//
+//		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
+//			.addPrimaryClipChangedListener(this);
 	}
 
 	@Override
 	protected void onDestroy() {
-		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-			.removePrimaryClipChangedListener(this);
+//		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
+//			.removePrimaryClipChangedListener(this);
 
 		ButterKnife.unbind(this);
 		super.onDestroy();

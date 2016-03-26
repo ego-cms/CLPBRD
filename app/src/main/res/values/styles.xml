@@ -3,9 +3,28 @@
 	<!-- Base application theme. -->
 	<style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
 		<!-- Customize your theme here. -->
-		<item name="colorPrimary">@color/colorPrimary</item>
-		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-		<item name="colorAccent">@color/colorAccent</item>
+		<item name="colorPrimary">@color/palettePanel</item>
+		<item name="colorPrimaryDark">@color/paletteBackground</item>
+		<item name="colorAccent">@color/paletteForeground</item>
+
+		<item name="android:textViewStyle">@style/TextView.Generic</item>
+		<item name="android:windowBackground">@drawable/bg_generic</item>
+	</style>
+
+	<style name="AppTheme.Fullscreen">
+		<item name="windowActionBar">false</item>
+		<item name="windowNoTitle">true</item>
+
+		<item name="android:windowActionBar">false</item>
+		<item name="android:windowNoTitle">true</item>
+	</style>
+
+	<style name="TextAppearance.AppCompat.Generic">
+		<item name="android:textColor">@color/paletteTextDefault</item>
+	</style>
+
+	<style name="TextView.Generic" parent="@android:style/Widget.DeviceDefault.TextView">
+		<item name="android:textAppearance">@style/TextAppearance.AppCompat.Generic</item>
 	</style>
 
 </resources>
