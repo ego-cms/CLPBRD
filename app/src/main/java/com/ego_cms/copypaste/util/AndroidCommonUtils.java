@@ -130,6 +130,10 @@ public final class AndroidCommonUtils {
 		}
 	}
 
+	public static void setBackgroundDrawable(@NotNull View view, @DrawableRes int drawableResId) {
+		setBackgroundDrawable(view, getDrawableFrom(view.getContext(), drawableResId));
+	}
+
 	public static boolean removeViewFromParent(@NotNull View v) {
 		ViewParent parent = v.getParent();
 

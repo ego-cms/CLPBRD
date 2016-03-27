@@ -8,7 +8,7 @@
         android:viewportWidth="643">
 	<path
 		android:name="v"
-		android:fillAlpha="0.5"
+		android:fillAlpha="0.24"
 		android:fillColor="@color/paletteBackgroundAlt"
 		android:pathData="@string/svg_bg_button_group_expanded"/>
 </vector>

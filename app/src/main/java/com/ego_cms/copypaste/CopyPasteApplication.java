@@ -47,6 +47,11 @@ public class CopyPasteApplication extends Application {
 
 
 	@NonNull
+	public SharedPreferences getCommonPreferences() {
+		return commonPreferences;
+	}
+
+	@NonNull
 	public KeyValueStorage getCommonKeyValueStorage() {
 		return new SharedKeyValueStorage(commonPreferences);
 	}

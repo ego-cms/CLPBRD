@@ -3,7 +3,7 @@
 
 	<!-- Home screen -->
 	<string name="button_service_toggle_normal">TURN\nIT ON</string>
-	<string name="button_service_toggle_enabled">TURN\nIT OFF</string>
+	<string name="button_service_toggle_activated">TURN\nIT OFF</string>
 
 	<string name="content_description_scan_qr">Scan QR code to connect with peer.</string>
 

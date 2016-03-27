@@ -44,6 +44,30 @@ public class CopyPasteService extends Service {
 	}
 
 
+	private static final String KEY_SERVICE_IS_RUNNING = "CopyPasteService.keyIsRunning";
+
+
+	private static Boolean isRunning;
+
+	public static boolean isRunning(@NonNull Context context) {
+		if (isRunning == null) {
+			isRunning = CopyPasteApplication.get(context)
+				.getCommonPreferences()
+				.getBoolean(KEY_SERVICE_IS_RUNNING, false);
+		}
+		return isRunning;
+	}
+
+	private static void setRunning(Context context, boolean running) {
+		isRunning = running;
+		CopyPasteApplication.get(context)
+			.getCommonPreferences()
+			.edit()
+			.putBoolean(KEY_SERVICE_IS_RUNNING, running)
+			.apply();
+	}
+
+
 	@Nullable
 	public static String getNetworkAddress() {
 		try {
@@ -86,8 +110,8 @@ public class CopyPasteService extends Service {
 
 		@NonNull
 		public String getValue() {
-			return getValue(((ClipboardManager) getSystemService(
-				CLIPBOARD_SERVICE)).getPrimaryClip());
+			return getValue(
+				((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip());
 		}
 
 		private String getValue(ClipData clipData) {
@@ -420,14 +444,15 @@ public class CopyPasteService extends Service {
 
 	@Override
 	public void onCreate() {
-		((ClipboardManager) getSystemService(
-			CLIPBOARD_SERVICE)).getPrimaryClip();
+		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip();
 
 		initializeServer();
+		setRunning(this, true);
 	}
 
 	@Override
 	public void onDestroy() {
+		setRunning(this, false);
 		releaseServer();
 	}
 

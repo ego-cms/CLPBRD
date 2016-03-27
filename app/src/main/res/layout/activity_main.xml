@@ -4,6 +4,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
 
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:paddingBottom="@dimen/activity_vertical_margin"
                 android:paddingLeft="@dimen/activity_horizontal_margin"
                 android:paddingRight="@dimen/activity_horizontal_margin"
@@ -25,7 +27,7 @@
 		android:src="@drawable/logo_product"
 
 		tools:ignore="ContentDescription"/>
-	
+
 	<TextView
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
@@ -39,40 +41,43 @@
 		android:id="@+id/group_service_controls"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:layout_alignParentRight="true"
 		android:layout_alignParentEnd="true"
+		android:layout_alignParentRight="true"
 		android:layout_below="@id/__view_anchor"
-		android:layout_marginTop="-76dp"
+		android:layout_marginTop="-80dp"
+		android:layout_marginRight="5dp"
+		android:layout_marginEnd="5dp"
 		android:background="@drawable/bg_button_group_expanded">
-
-		<Button fontPath="fonts/Raleway-ExtraBold.ttf"
-		        android:id="@+id/button_service_toggle"
-		        android:layout_width="125.6dp"
-		        android:layout_height="125.6dp"
-		        android:layout_marginTop="30dp"
-		        android:layout_marginLeft="55.3dp"
-		        android:layout_marginStart="55.3dp"
-		        android:background="@drawable/bg_button_service_toggle"
-		        android:letterSpacing="-0.076"
-		        android:text="@string/button_service_toggle_normal"
-		        android:textSize="26dp"
-
-		        tools:ignore="MissingPrefix,SpUsage,UnusedAttribute"/>
 
 		<ImageButton
 			android:id="@+id/button_scan_qr"
 			android:layout_width="64.3dp"
 			android:layout_height="64.3dp"
-			android:layout_marginTop="178.3dp"
 			android:layout_marginLeft="22.3dp"
 			android:layout_marginStart="22.3dp"
+			android:layout_marginTop="178.3dp"
 			android:background="@drawable/bg_button_scan_qr"
-			android:elevation="@dimen/button_elevation_material"
-			android:stateListAnimator="@animator/button_state_list_anim_material"
-			android:src="@drawable/ic_code_qr"
 			android:contentDescription="@string/content_description_scan_qr"
+			android:elevation="@dimen/button_elevation_material"
+			android:src="@drawable/ic_code_qr"
+			android:stateListAnimator="@animator/button_state_list_anim_material"
 
 			tools:ignore="UnusedAttribute"/>
+
+		<Button
+			android:id="@+id/button_service_toggle"
+			fontPath="fonts/Raleway-ExtraBold.ttf"
+			android:layout_width="125dp"
+			android:layout_height="125dp"
+			android:layout_marginLeft="56dp"
+			android:layout_marginStart="56dp"
+			android:layout_marginTop="32.66dp"
+			android:background="@drawable/bg_button_service_toggle"
+			android:letterSpacing="-0.076"
+			android:text="@string/button_service_toggle_normal"
+			android:textSize="26dp"
+
+			tools:ignore="MissingPrefix,SpUsage,UnusedAttribute"/>
 
 	</RelativeLayout>
 
@@ -82,24 +87,31 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_alignBottom="@id/__view_anchor"
+		android:layout_marginBottom="12dp"
 		android:layout_marginLeft="@dimen/gap_size_default"
 		android:layout_marginStart="@dimen/gap_size_default"
-		android:layout_marginBottom="12dp"
 		android:lines="2"
+		android:lineSpacingMultiplier="0.8"
 		android:text="@string/label_magic"
 		android:textColor="#9cffffff"
 		android:textSize="28dp"
+		android:visibility="invisible"
 
 		tools:ignore="MissingPrefix,SpUsage"/>
 
 	<ImageView
+		android:id="@+id/__image_magic"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_below="@id/__text_magic"
+		android:layout_marginTop="-32dp"
+		android:layout_marginRight="@dimen/gap_size_default"
+		android:layout_marginEnd="@dimen/gap_size_default"
 		android:layout_toLeftOf="@id/__view_anchor"
 		android:layout_toStartOf="@id/__view_anchor"
-		android:layout_marginTop="-32dp"
 		android:src="@drawable/ic_arrow_right_stylized"
+		android:visibility="invisible"
+
 		tools:ignore="ContentDescription"/>
 
 	<RelativeLayout
@@ -107,7 +119,7 @@
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
-		android:layout_marginBottom="110dp"
+		android:layout_marginBottom="96dp"
 		android:layout_marginLeft="@dimen/gap_size_default"
 		android:layout_marginStart="@dimen/gap_size_default">
 
@@ -115,12 +127,12 @@
 			android:id="@+id/button_show_qr"
 			android:layout_width="15.3dp"
 			android:layout_height="match_parent"
-			android:layout_alignTop="@+id/text_network_address"
 			android:layout_alignBottom="@+id/text_network_address"
-			android:src="@drawable/ic_code_qr"
+			android:layout_alignTop="@+id/text_network_address"
+			android:alpha="0.5"
 
 			android:clickable="false"
-			android:alpha="0.5"
+			android:src="@drawable/ic_code_qr"
 
 			tools:ignore="ContentDescription"/>
 

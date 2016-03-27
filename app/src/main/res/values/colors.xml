@@ -7,9 +7,10 @@
 	<color name="paletteTextDefault">#ffff</color>
 	<color name="paletteTextTitle">#f000</color>
 	<color name="paletteTextTitleAlt">#266c00</color>
+	<color name="paletteButtonToggleActivated">#c8280d</color>
+	<color name="paletteButtonToggleActivatedPressed">#8f1d09</color>
+	<color name="paletteButtonToggleNormalPressed">#388f09</color>
 	<color name="paletteButtonToggleNormal">#4fc80d</color>
-	<color name="paletteButtonToggleEnabled">#c8280d</color>
-	<color name="paletteButtonTogglePressed">@color/paletteBackgroundAlt</color>
-	<color name="paletteButtonScanQREnabled">#e2b428</color>
+	<color name="paletteButtonScanQRNormal">#e2b428</color>
 	<color name="paletteButtonScanQRPressed">#ab881e</color>
 </resources>
