@@ -1,11 +1,10 @@
 package com.ego_cms.copypaste;
 
 import android.content.Context;
-import android.support.v7.app.AppCompatActivity;
 
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
-public class ActivityBaseCompat extends AppCompatActivity {
+public class ActivityBaseCompat extends AppCompatActivityBase {
 
 	@Override
 	protected void attachBaseContext(Context newBase) {

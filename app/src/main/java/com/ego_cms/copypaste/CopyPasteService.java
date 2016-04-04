@@ -1,15 +1,20 @@
 package com.ego_cms.copypaste;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -17,14 +22,19 @@ import android.widget.Toast;
 import com.ego_cms.copypaste.util.Lazy;
 import com.google.gson.Gson;
 
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URI;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 
@@ -35,16 +45,49 @@ public class CopyPasteService extends Service {
 
 	private static final String TAG = "CopyPasteService";
 
-	public static void start(@NonNull Context context) {
-		context.startService(new Intent(context, CopyPasteService.class));
+	private static final String KEY_SERVICE_IS_RUNNING = TAG + ".keyIsRunning";
+
+	private static final String ACTION_START_CLIENT = TAG + ".action.START_CLIENT";
+	private static final String ACTION_START_SERVER = TAG + ".action.START_SERVER";
+	private static final String ACTION_STOP         = TAG + ".action.STOP";
+
+
+	private static final String ACTION_SERVICE_CALLBACK = TAG + ".action.SERVICE_CALLBACK";
+
+
+	public static final String CALLBACK_EXTRA_CLIENT_CONNECTED = TAG + ".extraClientConnected";
+
+	public static void registerCallbackReceiver(@NonNull Context context,
+		@NonNull BroadcastReceiver receiver) {
+
+		LocalBroadcastManager.getInstance(context)
+			.registerReceiver(receiver, new IntentFilter(ACTION_SERVICE_CALLBACK));
+	}
+
+	public static void unregisterCallbackReceiver(@NonNull Context context,
+		@NonNull BroadcastReceiver receiver) {
+
+		LocalBroadcastManager.getInstance(context)
+			.unregisterReceiver(receiver);
+	}
+
+
+	public static void startServer(@NonNull Context context) {
+		context.startService(
+			new Intent(ACTION_START_SERVER, null, context, CopyPasteService.class));
+	}
+
+	public static void startClient(@NonNull Context context, // preserve new line
+		@NonNull String networkAddress, int port) {
+
+		context.startService(new Intent(ACTION_START_CLIENT,
+			Uri.parse(String.format(Locale.US, "http://%s:%d", networkAddress, port)), context,
+			CopyPasteService.class));
 	}
 
 	public static void stop(@NonNull Context context) {
-		context.stopService(new Intent(context, CopyPasteService.class));
+		context.startService(new Intent(ACTION_STOP, null, context, CopyPasteService.class));
 	}
-
-
-	private static final String KEY_SERVICE_IS_RUNNING = "CopyPasteService.keyIsRunning";
 
 
 	private static Boolean isRunning;
@@ -53,18 +96,30 @@ public class CopyPasteService extends Service {
 		if (isRunning == null) {
 			isRunning = CopyPasteApplication.get(context)
 				.getCommonPreferences()
-				.getBoolean(KEY_SERVICE_IS_RUNNING, false);
+				.contains(KEY_SERVICE_IS_RUNNING);
 		}
 		return isRunning;
 	}
 
-	private static void setRunning(Context context, boolean running) {
-		isRunning = running;
-		CopyPasteApplication.get(context)
+	private static void setRunningAction(Context context, String action) {
+		isRunning = !TextUtils.isEmpty(action);
+		SharedPreferences.Editor editor = CopyPasteApplication.get(context)
 			.getCommonPreferences()
-			.edit()
-			.putBoolean(KEY_SERVICE_IS_RUNNING, running)
-			.apply();
+			.edit();
+
+		if (isRunning) {
+			editor.putString(KEY_SERVICE_IS_RUNNING, action);
+		}
+		else {
+			editor.remove(KEY_SERVICE_IS_RUNNING);
+		}
+		editor.apply();
+	}
+
+	private static String getRunningAction(Context context) {
+		return CopyPasteApplication.get(context)
+			.getCommonPreferences()
+			.getString(KEY_SERVICE_IS_RUNNING, "");
 	}
 
 
@@ -94,38 +149,131 @@ public class CopyPasteService extends Service {
 	}
 
 
-	private static final String ROOT_FOLDER = "www";
+	@NonNull
+	private String getClipValue() {
+		return getClipValue(
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip());
+	}
+
+	private String getClipValue(ClipData clipData) {
+		if (clipData != null) {
+			for (int i = 0, imax = clipData.getItemCount(); i < imax; ++i) {
+				CharSequence item = clipData.getItemAt(i)
+					.coerceToText(CopyPasteService.this);
+
+				if (!TextUtils.isEmpty(item)) {
+					return item.toString();
+				}
+			}
+		}
+		return "";
+	}
+
+	private void setClipValue(Handler handler, String clipText) {
+		if (!TextUtils.isEmpty(clipText)) {
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(
+				new ClipData(TAG, new String[]{NanoHTTPD.MIME_PLAINTEXT},
+					new ClipData.Item(clipText)));
+
+			handler.post(() -> // preserve new line
+				Toast.makeText(CopyPasteService.this, R.string.label_clip_updated,
+					Toast.LENGTH_LONG)
+					.show());
+		}
+	}
 
 
-	private final class Clipboard extends NanoWSD {
+	private final class ClipboardClient extends WebSocketClient
+		implements ClipboardManager.OnPrimaryClipChangedListener {
 
 		private final Handler handler;
 
-		public Clipboard() {
-			super(49152 + new Random(System.currentTimeMillis()).nextInt(16384));
+		public ClipboardClient(Uri serverURI) {
+			super(URI.create(serverURI.toString()));
 
 			handler = new Handler(Looper.getMainLooper());
 		}
 
 
-		@NonNull
-		public String getValue() {
-			return getValue(
-				((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip());
+		private Thread connectionThread;
+
+		@Override
+		public void run() {
+			if (connectionThread == null) {
+				connectionThread = new Thread(super::run);
+				connectionThread.start();
+			}
 		}
 
-		private String getValue(ClipData clipData) {
-			if (clipData != null) {
-				for (int i = 0, imax = clipData.getItemCount(); i < imax; ++i) {
-					CharSequence item = clipData.getItemAt(i)
-						.coerceToText(CopyPasteService.this);
+		@Override
+		public void onOpen(ServerHandshake handshakedata) {
+			if (handshakedata.getHttpStatus() == 200) {
+				((ClipboardManager) getSystemService(
+					CLIPBOARD_SERVICE)).addPrimaryClipChangedListener(this);
 
-					if (!TextUtils.isEmpty(item)) {
-						return item.toString();
-					}
+				Intent intent = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+					CopyPasteService.class);
+				{
+					intent.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED,
+						(int) handshakedata.getHttpStatus());
 				}
+				LocalBroadcastManager.getInstance(CopyPasteService.this)
+					.sendBroadcast(intent);
 			}
-			return "";
+		}
+
+		@Override
+		public void onMessage(String message) {
+			setClipValue(handler, message);
+		}
+
+		@Override
+		public void onClose(int code, String reason, boolean remote) {
+			((ClipboardManager) getSystemService(
+				CLIPBOARD_SERVICE)).removePrimaryClipChangedListener(this);
+
+			connectionThread = null;
+		}
+
+		@Override
+		public void onError(Exception ex) {
+			Intent intent = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+				CopyPasteService.class);
+			{
+				intent.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
+			}
+			LocalBroadcastManager.getInstance(CopyPasteService.this)
+				.sendBroadcast(intent);
+			setRunningAction(CopyPasteService.this, null);
+		}
+
+		@Override
+		public void onPrimaryClipChanged() {
+			send(getClipValue());
+		}
+	}
+
+
+	private ClipboardClient client;
+
+	private int onStartClient(Intent intent) {
+		client = new ClipboardClient(intent.getData());
+		client.run();
+
+		setRunningAction(this, intent.getAction());
+
+		return START_REDELIVER_INTENT;
+	}
+
+
+	private final class ClipboardServer extends NanoWSD {
+
+		private final Handler handler;
+
+		public ClipboardServer() {
+			super(49152 + new Random(System.currentTimeMillis()).nextInt(16384));
+
+			handler = new Handler(Looper.getMainLooper());
 		}
 
 		private class Socket extends WebSocket
@@ -186,7 +334,7 @@ public class CopyPasteService extends Service {
 					.getLabel())) {
 
 					try {
-						send(getValue(clipData));
+						send(getClipValue(clipData));
 					}
 					catch (IOException e) {
 						e.printStackTrace();
@@ -211,10 +359,10 @@ public class CopyPasteService extends Service {
 	}
 
 
-	private final Lazy<Clipboard> clipboardLazy = new Lazy<Clipboard>() {
+	private final Lazy<ClipboardServer> clipboardServerLazy = new Lazy<ClipboardServer>() {
 		@Override
-		protected Clipboard initialize() {
-			Clipboard result = new Clipboard();
+		protected ClipboardServer initialize() {
+			ClipboardServer result = new ClipboardServer();
 
 			try {
 				result.start(15000);
@@ -236,17 +384,20 @@ public class CopyPasteService extends Service {
 
 	}
 
+	private static final String ROOT_FOLDER = "www";
+
+
 	// GET
 	private NanoHTTPD.Response endpointClipboard(String url, NanoHTTPD.IHTTPSession session)
 		throws Exception {
 
 		ClipboardData data = new ClipboardData();
 		{
-			Clipboard clipboard = clipboardLazy.get();
+			ClipboardServer clipboard = clipboardServerLazy.get();
 
 			data.port = clipboard.getListeningPort();
 			data.host = getNetworkAddress();
-			data.text = clipboard.getValue();
+			data.text = getClipValue();
 		}
 		return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json",
 			new Gson().toJson(data));
@@ -408,9 +559,10 @@ public class CopyPasteService extends Service {
 		}
 	}
 
+
 	private Server server;
 
-	private void initializeServer() {
+	private int onStartServer(Intent intent) {
 		server = new Server(BuildConfig.SERVER_PORT);
 
 		server.register(NanoHTTPD.Method.GET, "/", this::endpointIndex);
@@ -419,25 +571,37 @@ public class CopyPasteService extends Service {
 
 		try {
 			server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+
+			setRunningAction(this, ACTION_START_SERVER);
 		}
 		catch (IOException e) {
 			e.printStackTrace();
-
-			throw new RuntimeException(e);
 		}
+		return START_STICKY;
 	}
 
-	private void releaseServer() {
-		if (server != null) {
-			server.stop();
-
-			if (!clipboardLazy.isEmpty()) {
-				Clipboard clipboard = clipboardLazy.get();
-
-				if (clipboard.isAlive()) {
-					clipboard.stop();
+	private void stopRunningActions(String action) {
+		switch (action) {
+			case ACTION_START_CLIENT:
+				if (client != null) {
+					client.close();
+					client = null;
 				}
-			}
+				break;
+			case ACTION_START_SERVER:
+				if (server != null) {
+					server.stop();
+
+					if (!clipboardServerLazy.isEmpty()) {
+						ClipboardServer clipboard = clipboardServerLazy.get();
+
+						if (clipboard.isAlive()) {
+							clipboard.stop();
+						}
+					}
+					server = null;
+				}
+				break;
 		}
 	}
 
@@ -445,20 +609,32 @@ public class CopyPasteService extends Service {
 	@Override
 	public void onCreate() {
 		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip();
-
-		initializeServer();
-		setRunning(this, true);
-	}
-
-	@Override
-	public void onDestroy() {
-		setRunning(this, false);
-		releaseServer();
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		return START_STICKY;
+		String action, actionCurrent = getRunningAction(this);
+
+		if (intent != null) {
+			action = intent.getAction();
+
+			setRunningAction(this, action);
+		}
+		else {
+			action = actionCurrent;
+		}
+		stopRunningActions(actionCurrent);
+
+		switch (action) {
+			case ACTION_START_CLIENT:
+				return onStartClient(intent);
+			case ACTION_START_SERVER:
+				return onStartServer(intent);
+			case ACTION_STOP:
+				setRunningAction(this, null);
+				stopSelf();
+		}
+		return START_NOT_STICKY;
 	}
 
 	@Nullable

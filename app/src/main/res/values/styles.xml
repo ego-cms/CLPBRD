@@ -2,6 +2,10 @@
 
 	<!-- Base application theme. -->
 	<style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+		<!-- define platform-specific style items here -->
+	</style>
+
+	<style name="AppTheme.Generic">
 		<!-- Customize your theme here. -->
 		<item name="colorPrimary">@color/palettePanel</item>
 		<item name="colorPrimaryDark">@color/paletteBackground</item>
@@ -12,12 +16,24 @@
 		<item name="android:windowBackground">@drawable/bg_generic</item>
 	</style>
 
-	<style name="AppTheme.Fullscreen">
+	<style name="AppTheme.Generic.Fullscreen">
 		<item name="windowActionBar">false</item>
 		<item name="windowNoTitle">true</item>
 
 		<item name="android:windowActionBar">false</item>
 		<item name="android:windowNoTitle">true</item>
+	</style>
+
+	<style name="AppTheme.Generic.Fullscreen.Translucent">
+		<item name="android:windowBackground">@android:color/transparent</item>
+		<item name="android:backgroundDimAmount">0.75</item>
+		<item name="android:backgroundDimEnabled">true</item>
+		<item name="android:colorBackgroundCacheHint">@null</item>
+		<item name="android:windowIsTranslucent">true</item>
+	</style>
+
+	<style name="ProgressDialog.Generic" parent="Theme.AppCompat.Light.Dialog">
+		<item name="android:textColor">@color/paletteTextTitle</item>
 	</style>
 
 	<style name="TextAppearance.AppCompat.Generic">

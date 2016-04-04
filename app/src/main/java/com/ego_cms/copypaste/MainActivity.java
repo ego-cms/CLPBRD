@@ -1,19 +1,28 @@
 package com.ego_cms.copypaste;
 
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.PointF;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
+import android.support.v4.widget.TextViewCompat;
+import android.support.v7.app.AlertDialog;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 
 import com.ego_cms.copypaste.util.AndroidCommonUtils;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.util.Locale;
 
@@ -22,9 +31,6 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class MainActivity extends ActivityBaseCompat {
-
-	private static final String TAG = "MainActivity";
-
 
 	@Bind(R.id.__view_anchor)
 	View viewAnchor;
@@ -53,6 +59,9 @@ public class MainActivity extends ActivityBaseCompat {
 	@Bind(R.id.text_network_address)
 	TextView textNetworkAddress;
 
+	@Bind(R.id.button_contact_us)
+	TextView buttonContactUs;
+
 
 	@OnClick(R.id.button_service_toggle)
 	void onServiceToggleButtonClick() {
@@ -65,7 +74,7 @@ public class MainActivity extends ActivityBaseCompat {
 				String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
 					BuildConfig.SERVER_PORT));
 
-			CopyPasteService.start(this);
+			CopyPasteService.startServer(this);
 			transitionServiceEnabledState();
 			transitionMagicHintOut();
 		}
@@ -73,12 +82,19 @@ public class MainActivity extends ActivityBaseCompat {
 
 	@OnClick(R.id.button_scan_qr)
 	void onScanQRButtonClick() {
-		/* Nothing to do */
+		new IntentIntegrator(this) // preserve new line
+			.setBeepEnabled(true)
+			.setCaptureActivity(AddressScannerActivity.class)
+			.setOrientationLocked(true)
+			.setPrompt("")
+			.initiateScan(IntentIntegrator.QR_CODE_TYPES);
 	}
 
 	@OnClick(R.id.button_show_qr)
 	void onShowQRButtonClick() {
-		/* Nothing to do */
+		//noinspection ConstantConditions
+		AddressDisplayActivity.startAsync(this, // preserve new line
+			buttonShowQR, String.format("clpbrd://%s", CopyPasteService.getNetworkAddress()));
 	}
 
 	@OnClick(R.id.button_contact_us)
@@ -88,7 +104,6 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 
-	private PointF magicTextOrigin;
 	private PointF magicImageOrigin;
 
 	private void bringMagicHintIn() {
@@ -241,6 +256,14 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 	private void initializeView(Runnable onComplete) {
+		Drawable drawable = DrawableCompat.wrap(
+			AndroidCommonUtils.getDrawableFrom(this, R.drawable.logo_authority))
+			.mutate();
+
+		DrawableCompat.setTint(drawable, buttonContactUs.getCurrentTextColor());
+		TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(buttonContactUs, null, null,
+			drawable, null);
+
 		groupServiceControls.getViewTreeObserver()
 			.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 				@Override
@@ -250,7 +273,6 @@ public class MainActivity extends ActivityBaseCompat {
 
 					screenCenter = takeCenter(viewAnchor);
 					groupServiceControlsOrigin = takeOrigin(groupServiceControls);
-					magicTextOrigin = takeOrigin(magicText);
 					magicImageOrigin = takeOrigin(magicImage);
 					scanQRButtonOrigin = takeOrigin(buttonScanQR);
 					toggleServiceButtonCenter = takeCenter(buttonServiceToggle);
@@ -279,7 +301,6 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 	}
 
-
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -294,6 +315,76 @@ public class MainActivity extends ActivityBaseCompat {
 		super.onDestroy();
 	}
 
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		switch (requestCode) {
+			case IntentIntegrator.REQUEST_CODE:
+				if (resultCode == RESULT_OK) {
+					IntentResult intentResult = IntentIntegrator // preserve new line
+						.parseActivityResult(requestCode, resultCode, data);
+
+					if (intentResult != null) {
+						Uri uri = Uri.parse(intentResult.getContents());
+
+						if ("clpbrd".equals(uri.getScheme())) {
+							ProgressDialog progress = new ProgressDialog(this,
+								R.style.ProgressDialog_Generic);
+							{
+								progress.setCancelable(false);
+								progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+								progress.setMessage(
+									getString(R.string.title_dialog_progress_connecting));
+							}
+							progress.show();
+
+							CopyPasteService.registerCallbackReceiver(this,
+								new BroadcastReceiver() {
+									@Override
+									public void onReceive(Context context, Intent intent) {
+										CopyPasteService.unregisterCallbackReceiver(context, this);
+
+										int status = intent.getIntExtra(
+											CopyPasteService.CALLBACK_EXTRA_CLIENT_CONNECTED, -1);
+
+										if (status == 200) {
+											transitionServiceEnabledState();
+											transitionMagicHintOut();
+										}
+										else {
+											bringMagicHintIn();
+											displayServiceDisabledState();
+
+											new AlertDialog.Builder(MainActivity.this).setTitle(
+												R.string.title_dialog_error_connection)
+												.setMessage(getString(
+													R.string.message_dialog_error_connection,
+													getString(R.string.application_name)))
+												.setPositiveButton(R.string.button_positive_generic,
+													null)
+												.show();
+										}
+										progress.dismiss();
+									}
+								});
+
+							getMainHandler().post(
+								() -> CopyPasteService.startClient(this, uri.getAuthority(),
+									BuildConfig.SERVER_PORT));
+						}
+						else {
+							new AlertDialog.Builder(this).setTitle(
+								R.string.title_dialog_error_bad_qr)
+								.setMessage(getString(R.string.message_dialog_error_bad_qr,
+									getString(R.string.application_name)))
+								.setPositiveButton(R.string.button_positive_generic, null)
+								.show();
+						}
+					}
+				}
+				break;
+		}
+	}
 
 	private PointF takeCenter(View v) {
 		return new PointF(v.getX() + v.getWidth() / 2.f, v.getY() + v.getHeight() / 2.f);
