@@ -8,8 +8,10 @@ import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
+import android.support.graphics.drawable.VectorDrawableCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
@@ -187,12 +189,19 @@ public class MainActivity extends ActivityBaseCompat {
 			.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
 			.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
 
-		AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-			R.drawable.bg_button_group_animated_forward);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+			AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(
+				this, R.drawable.bg_button_group_animated_forward);
 
-		if (backgroundAnimated != null) {
-			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
-			backgroundAnimated.start();
+			if (backgroundAnimated != null) {
+				AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
+				backgroundAnimated.start();
+			}
+		}
+		else {
+			Drawable background = VectorDrawableCompat.create(getResources(),
+				R.drawable.bg_button_group_collapsed, getTheme());
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, background);
 		}
 		groupServiceControls.postDelayed(() -> {
 			ViewCompat.animate(groupServiceControls)
@@ -213,6 +222,10 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 	private void displayServiceDisabledState() {
+		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+			VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_expanded,
+				getTheme()));
+
 		buttonScanQR.setVisibility(View.VISIBLE);
 		buttonScanQR.setX(scanQRButtonOrigin.x);
 		buttonScanQR.setY(scanQRButtonOrigin.y);
@@ -235,14 +248,21 @@ public class MainActivity extends ActivityBaseCompat {
 					.x(scanQRButtonOrigin.x)
 					.y(scanQRButtonOrigin.y);
 
-				AnimatedVectorDrawableCompat backgroundAnimated
-					= AnimatedVectorDrawableCompat.create(this,
-					R.drawable.bg_button_group_animated_backward);
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+					AnimatedVectorDrawableCompat backgroundAnimated
+						= AnimatedVectorDrawableCompat.create(this,
+						R.drawable.bg_button_group_animated_backward);
 
-				if (backgroundAnimated != null) {
-					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-						backgroundAnimated);
-					backgroundAnimated.start();
+					if (backgroundAnimated != null) {
+						AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+							backgroundAnimated);
+						backgroundAnimated.start();
+					}
+				}
+				else {
+					Drawable background = VectorDrawableCompat.create(getResources(),
+						R.drawable.bg_button_group_expanded, getTheme());
+					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, background);
 				}
 				buttonServiceToggle.setText(R.string.button_service_toggle_normal);
 				buttonServiceToggle.setActivated(false);
@@ -263,6 +283,10 @@ public class MainActivity extends ActivityBaseCompat {
 		DrawableCompat.setTint(drawable, buttonContactUs.getCurrentTextColor());
 		TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(buttonContactUs, null, null,
 			drawable, null);
+
+		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+			VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_expanded,
+				getTheme()));
 
 		groupServiceControls.getViewTreeObserver()
 			.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -306,6 +330,7 @@ public class MainActivity extends ActivityBaseCompat {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		ButterKnife.bind(this);
+
 		initializeView(() -> onViewInitialized(savedInstanceState != null));
 	}
 
