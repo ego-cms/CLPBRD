@@ -23,20 +23,28 @@ import com.ego_cms.copypaste.util.Lazy;
 import com.google.gson.Gson;
 
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoWSD;
@@ -189,7 +197,7 @@ public class CopyPasteService extends Service {
 		private final Handler handler;
 
 		public ClipboardClient(Uri serverURI) {
-			super(URI.create(serverURI.toString()));
+			super(URI.create(serverURI.toString()), new Draft_17());
 
 			handler = new Handler(Looper.getMainLooper());
 		}
@@ -207,19 +215,17 @@ public class CopyPasteService extends Service {
 
 		@Override
 		public void onOpen(ServerHandshake handshakedata) {
-			if (handshakedata.getHttpStatus() == 200) {
-				((ClipboardManager) getSystemService(
-					CLIPBOARD_SERVICE)).addPrimaryClipChangedListener(this);
+			((ClipboardManager) getSystemService(
+				CLIPBOARD_SERVICE)).addPrimaryClipChangedListener(this);
 
-				Intent intent = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
-					CopyPasteService.class);
-				{
-					intent.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED,
-						(int) handshakedata.getHttpStatus());
-				}
-				LocalBroadcastManager.getInstance(CopyPasteService.this)
-					.sendBroadcast(intent);
+			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+				CopyPasteService.class);
+			{
+				broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED,
+					(int) handshakedata.getHttpStatus());
 			}
+			LocalBroadcastManager.getInstance(CopyPasteService.this)
+				.sendBroadcast(broadcast);
 		}
 
 		@Override
@@ -237,13 +243,13 @@ public class CopyPasteService extends Service {
 
 		@Override
 		public void onError(Exception ex) {
-			Intent intent = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
 				CopyPasteService.class);
 			{
-				intent.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
+				broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
 			}
 			LocalBroadcastManager.getInstance(CopyPasteService.this)
-				.sendBroadcast(intent);
+				.sendBroadcast(broadcast);
 			setRunningAction(CopyPasteService.this, null);
 		}
 
@@ -254,14 +260,77 @@ public class CopyPasteService extends Service {
 	}
 
 
+	private static final class ClipboardData {
+
+		public int port;
+
+		public String host;
+
+		public String text;
+
+	}
+
+
 	private ClipboardClient client;
 
 	private int onStartClient(Intent intent) {
-		client = new ClipboardClient(intent.getData());
-		client.run();
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 4, 1, TimeUnit.MINUTES,
+			new LinkedBlockingQueue<>());
 
-		setRunningAction(this, intent.getAction());
+		executor.execute(() -> {
+			try {
+				URLConnection connection = new URL(
+					intent.getDataString() + "/clipboard").openConnection();
 
+				connection.connect();
+
+				BufferedReader is = new BufferedReader(
+					new InputStreamReader(connection.getInputStream()));
+
+				try {
+					StringBuilder sb = new StringBuilder();
+
+					String inputLine;
+					while ((inputLine = is.readLine()) != null) {
+						sb.append(inputLine);
+					}
+					ClipboardData data = new Gson().fromJson(sb.toString(), ClipboardData.class);
+					Handler handler = new Handler(Looper.getMainLooper());
+
+					handler.post(() -> {
+						client = new ClipboardClient(
+							Uri.parse("ws://" + data.host + ":" + data.port));
+
+						executor.execute(client);
+						setRunningAction(this, intent.getAction());
+
+						Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+							CopyPasteService.class);
+						{
+							broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 200);
+						}
+						LocalBroadcastManager.getInstance(CopyPasteService.this)
+							.sendBroadcast(broadcast);
+
+						setClipValue(handler, data.text);
+					});
+				}
+				finally {
+					is.close();
+				}
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+
+				Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+					CopyPasteService.class);
+				{
+					broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
+				}
+				LocalBroadcastManager.getInstance(CopyPasteService.this)
+					.sendBroadcast(broadcast);
+			}
+		});
 		return START_REDELIVER_INTENT;
 	}
 
@@ -301,18 +370,7 @@ public class CopyPasteService extends Service {
 
 			@Override
 			protected void onMessage(WebSocketFrame message) {
-				String clipText = message.getTextPayload();
-
-				if (!TextUtils.isEmpty(clipText)) {
-					((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(
-						new ClipData(TAG, new String[]{NanoHTTPD.MIME_PLAINTEXT},
-							new ClipData.Item(clipText)));
-
-					handler.post(() -> // preserve new line
-						Toast.makeText(CopyPasteService.this, R.string.label_clip_updated,
-							Toast.LENGTH_LONG)
-							.show());
-				}
+				setClipValue(handler, message.getTextPayload());
 			}
 
 			@Override
@@ -373,16 +431,6 @@ public class CopyPasteService extends Service {
 			return result;
 		}
 	};
-
-	private static final class ClipboardData {
-
-		public int port;
-
-		public String host;
-
-		public String text;
-
-	}
 
 	private static final String ROOT_FOLDER = "www";
 

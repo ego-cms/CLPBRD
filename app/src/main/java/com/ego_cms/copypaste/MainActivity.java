@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
@@ -187,12 +188,18 @@ public class MainActivity extends ActivityBaseCompat {
 			.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
 			.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
 
-		AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-			R.drawable.bg_button_group_animated_forward);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+			AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(
+				this, R.drawable.bg_button_group_animated_forward);
 
-		if (backgroundAnimated != null) {
-			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
-			backgroundAnimated.start();
+			if (backgroundAnimated != null) {
+				AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
+				backgroundAnimated.start();
+			}
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				R.drawable.bg_button_group_collapsed);
 		}
 		groupServiceControls.postDelayed(() -> {
 			ViewCompat.animate(groupServiceControls)
@@ -213,6 +220,9 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 	private void displayServiceDisabledState() {
+		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+			R.drawable.bg_button_group_expanded);
+
 		buttonScanQR.setVisibility(View.VISIBLE);
 		buttonScanQR.setX(scanQRButtonOrigin.x);
 		buttonScanQR.setY(scanQRButtonOrigin.y);
@@ -235,14 +245,22 @@ public class MainActivity extends ActivityBaseCompat {
 					.x(scanQRButtonOrigin.x)
 					.y(scanQRButtonOrigin.y);
 
-				AnimatedVectorDrawableCompat backgroundAnimated
-					= AnimatedVectorDrawableCompat.create(this,
-					R.drawable.bg_button_group_animated_backward);
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+					AnimatedVectorDrawableCompat backgroundAnimated
+						= AnimatedVectorDrawableCompat.create(this,
+						R.drawable.bg_button_group_animated_backward);
 
-				if (backgroundAnimated != null) {
-					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-						backgroundAnimated);
-					backgroundAnimated.start();
+					if (backgroundAnimated != null) {
+						AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+							backgroundAnimated);
+						backgroundAnimated.start();
+					}
+				}
+				else {
+					groupServiceControls.postDelayed(
+						() -> AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+							R.drawable.bg_button_group_expanded),
+						getResources().getInteger(android.R.integer.config_shortAnimTime));
 				}
 				buttonServiceToggle.setText(R.string.button_service_toggle_normal);
 				buttonServiceToggle.setActivated(false);
@@ -263,6 +281,9 @@ public class MainActivity extends ActivityBaseCompat {
 		DrawableCompat.setTint(drawable, buttonContactUs.getCurrentTextColor());
 		TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(buttonContactUs, null, null,
 			drawable, null);
+
+		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+			R.drawable.bg_button_group_expanded);
 
 		groupServiceControls.getViewTreeObserver()
 			.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
