@@ -7,6 +7,8 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.multidex.MultiDex;
 
+import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
+
 public class CopyPasteApplication extends Application {
 
 	@NonNull
@@ -18,6 +20,12 @@ public class CopyPasteApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
+
+		CalligraphyConfig.initDefault(new CalligraphyConfig.Builder()
+			.setDefaultFontPath("fonts/Ubuntu-R.ttf")
+			.setFontAttrId(R.attr.fontPath)
+			.build()
+		);
 
 		// TODO: initialize additional components here.
 		initSharedPreferences();
@@ -37,6 +45,11 @@ public class CopyPasteApplication extends Application {
 		commonPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 	}
 
+
+	@NonNull
+	public SharedPreferences getCommonPreferences() {
+		return commonPreferences;
+	}
 
 	@NonNull
 	public KeyValueStorage getCommonKeyValueStorage() {

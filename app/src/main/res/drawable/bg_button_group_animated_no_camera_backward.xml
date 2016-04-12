@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+                 xmlns:tools="http://schemas.android.com/tools"
+
+                 android:drawable="@drawable/bg_button_group_forward"
+
+                 tools:ignore="NewApi">
+
+	<target
+		android:animation="@animator/bg_button_static_color_animator_backward"
+		android:name="v"/>
+
+</animated-vector>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="@dimen/gap_size_two_times">
+
+	<com.ego_cms.copypaste.widget.SquareImageView
+		android:id="@+id/image_qr_code"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:scaleType="centerCrop"
+		android:src="@mipmap/ic_launcher"
+		android:transitionName="qr"
+
+		tools:ignore="ContentDescription,UnusedAttribute"/>
+
+	<TextView
+		android:id="@+id/text_qr_hint"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/image_qr_code"
+		android:layout_marginTop="@dimen/gap_size_default"
+		android:gravity="center"
+		android:text="@string/label_service_qr_hint"/>
+
+</RelativeLayout>
