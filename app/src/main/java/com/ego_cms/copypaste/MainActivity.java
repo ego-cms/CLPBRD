@@ -4,14 +4,13 @@ import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
-import android.support.graphics.drawable.VectorDrawableCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
@@ -106,6 +105,11 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 
+	private boolean hasCamera() {
+		return getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+	}
+
+
 	private PointF magicImageOrigin;
 
 	private void bringMagicHintIn() {
@@ -170,37 +174,48 @@ public class MainActivity extends ActivityBaseCompat {
 	private PointF toggleServiceButtonCenter;
 
 	private void displayServiceEnabledState() {
-		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-			R.drawable.bg_button_group_collapsed);
+		if (hasCamera()) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				R.drawable.bg_button_group_forward);
 
+			buttonScanQR.setVisibility(View.INVISIBLE);
+			buttonScanQR.setX(scanQRButtonOrigin.x);
+			buttonScanQR.setY(scanQRButtonOrigin.y);
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				R.drawable.bg_button_group_no_camera_forward);
+		}
 		groupServiceControls.setX(screenCenter.x - toggleServiceButtonCenter.x);
 		groupNetworkAddress.setVisibility(View.VISIBLE);
 		buttonServiceToggle.setText(R.string.button_service_toggle_activated);
 		buttonServiceToggle.setActivated(true);
-		buttonScanQR.setVisibility(View.INVISIBLE);
-		buttonScanQR.setX(scanQRButtonOrigin.x);
-		buttonScanQR.setY(scanQRButtonOrigin.y);
 	}
 
 	private void transitionServiceEnabledState() {
-		ViewCompat.animate(buttonScanQR)
-			.alpha(0)
-			.x(toggleServiceButtonCenter.x - buttonScanQR.getWidth() / 2.f)
-			.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
-			.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
+		AnimatedVectorDrawableCompat backgroundAnimated;
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			AnimatedVectorDrawableCompat backgroundAnimated = AnimatedVectorDrawableCompat.create(
-				this, R.drawable.bg_button_group_animated_forward);
+		if (hasCamera()) {
+			ViewCompat.animate(buttonScanQR)
+				.alpha(0)
+				.x(toggleServiceButtonCenter.x - buttonScanQR.getWidth() / 2.f)
+				.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
+				.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
 
-			if (backgroundAnimated != null) {
-				AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
-				backgroundAnimated.start();
-			}
+			backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
+				R.drawable.bg_button_group_animated_forward);
+		}
+		else {
+			backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
+				R.drawable.bg_button_group_animated_no_camera_forward);
+		}
+		if (backgroundAnimated != null) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
+			backgroundAnimated.start();
 		}
 		else {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_collapsed);
+				R.drawable.bg_button_group_forward);
 		}
 		groupServiceControls.postDelayed(() -> {
 			ViewCompat.animate(groupServiceControls)
@@ -221,17 +236,22 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 	private void displayServiceDisabledState() {
-		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-			R.drawable.bg_button_group_expanded);
+		if (hasCamera()) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				R.drawable.bg_button_group_backward);
 
-		buttonScanQR.setVisibility(View.VISIBLE);
-		buttonScanQR.setX(scanQRButtonOrigin.x);
-		buttonScanQR.setY(scanQRButtonOrigin.y);
-		buttonServiceToggle.setActivated(false);
-		buttonServiceToggle.setText(R.string.button_service_toggle_normal);
+			buttonScanQR.setVisibility(View.VISIBLE);
+			buttonScanQR.setX(scanQRButtonOrigin.x);
+			buttonScanQR.setY(scanQRButtonOrigin.y);
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				R.drawable.bg_button_group_no_camera_backward);
+		}
 		groupServiceControls.setX(groupServiceControlsOrigin.x);
 		groupNetworkAddress.setVisibility(View.INVISIBLE);
-		groupServiceControls.setVisibility(View.VISIBLE);
+		buttonServiceToggle.setText(R.string.button_service_toggle_normal);
+		buttonServiceToggle.setActivated(false);
 	}
 
 	private void transitionServiceDisabledState(Runnable onComplete) {
@@ -239,28 +259,34 @@ public class MainActivity extends ActivityBaseCompat {
 			.setInterpolator(new AccelerateDecelerateInterpolator())
 			.x(groupServiceControlsOrigin.x)
 			.withEndAction(() -> {
-				buttonScanQR.setAlpha(0);
-				buttonScanQR.setVisibility(View.VISIBLE);
-				ViewCompat.animate(buttonScanQR)
-					.alpha(1)
-					.x(scanQRButtonOrigin.x)
-					.y(scanQRButtonOrigin.y);
+				AnimatedVectorDrawableCompat backgroundAnimated;
 
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-					AnimatedVectorDrawableCompat backgroundAnimated
+				if (hasCamera()) {
+					buttonScanQR.setAlpha(0);
+					buttonScanQR.setVisibility(View.VISIBLE);
+					ViewCompat.animate(buttonScanQR)
+						.alpha(1)
+						.x(scanQRButtonOrigin.x)
+						.y(scanQRButtonOrigin.y);
+
+					backgroundAnimated
 						= AnimatedVectorDrawableCompat.create(this,
 						R.drawable.bg_button_group_animated_backward);
-
-					if (backgroundAnimated != null) {
-						AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-							backgroundAnimated);
-						backgroundAnimated.start();
-					}
+				}
+				else {
+					backgroundAnimated
+						= AnimatedVectorDrawableCompat.create(this,
+						R.drawable.bg_button_group_animated_no_camera_backward);
+				}
+				if (backgroundAnimated != null) {
+					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+						backgroundAnimated);
+					backgroundAnimated.start();
 				}
 				else {
 					groupServiceControls.postDelayed(
 						() -> AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-							R.drawable.bg_button_group_expanded),
+							R.drawable.bg_button_group_backward),
 						getResources().getInteger(android.R.integer.config_shortAnimTime));
 				}
 				buttonServiceToggle.setText(R.string.button_service_toggle_normal);
@@ -284,8 +310,11 @@ public class MainActivity extends ActivityBaseCompat {
 			drawable, null);
 
 		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-			R.drawable.bg_button_group_expanded);
+			R.drawable.bg_button_group_backward);
 
+		if (!hasCamera()) {
+			buttonScanQR.setVisibility(View.GONE);
+		}
 		groupServiceControls.getViewTreeObserver()
 			.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 				@Override

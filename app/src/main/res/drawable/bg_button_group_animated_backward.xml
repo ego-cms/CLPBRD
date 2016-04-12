@@ -2,12 +2,12 @@
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
                  xmlns:tools="http://schemas.android.com/tools"
 
-                 android:drawable="@drawable/bg_button_group_collapsed"
+                 android:drawable="@drawable/bg_button_group_backward"
 
                  tools:ignore="NewApi">
 
 	<target
-		android:animation="@animator/bg_button_static_morph_animator_backward"
+		android:animation="@animator/bg_button_static_color_animator_backward"
 		android:name="v"/>
 
 </animated-vector>

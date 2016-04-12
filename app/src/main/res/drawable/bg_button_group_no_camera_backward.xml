@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+
+        android:height="265.33dp"
+        android:width="214.33dp"
+
+        android:viewportHeight="796"
+        android:viewportWidth="643">
+
+	<path
+		android:name="v"
+		android:fillAlpha="0.24"
+		android:fillColor="@color/paletteBackgroundAlt"
+		android:pathData="@string/svg_bg_button_group_collapsed"/>
+
+</vector>
