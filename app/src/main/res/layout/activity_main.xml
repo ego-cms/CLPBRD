@@ -152,6 +152,7 @@
 			tools:ignore="HardcodedText"/>
 
 		<TextView
+			android:id="@+id/text_network_address_hint"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignLeft="@id/text_network_address"

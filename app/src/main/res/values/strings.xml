@@ -12,6 +12,7 @@
 	<string name="label_magic">Magic\nbutton</string>
 	<string name="label_promotion">Made with love by</string>
 	<string name="label_service_browser_hint">Connect to this address in your browser</string>
+	<string name="label_service_client_hint">You\'re connected to this address</string>
 	<string name="label_service_hint">Send clipboard between your phone,\ndesktop or another phone.\n\nTurn service on and just copy and paste.</string>
 	<string name="label_service_qr_hint">Scan this code in %s App running on\nanother device to get connected</string>
 

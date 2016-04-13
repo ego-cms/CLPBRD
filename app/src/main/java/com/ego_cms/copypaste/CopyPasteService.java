@@ -12,13 +12,14 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
+import com.ego_cms.copypaste.util.Delegate;
 import com.ego_cms.copypaste.util.Lazy;
 import com.google.gson.Gson;
 
@@ -38,10 +39,13 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +57,13 @@ public class CopyPasteService extends Service {
 
 	private static final String TAG = "CopyPasteService";
 
+
+	private static CopyPasteApplication application;
+
+	public static void initialize(CopyPasteApplication application) {
+		CopyPasteService.application = application;
+	}
+
 	private static final String KEY_SERVICE_IS_RUNNING = TAG + ".keyIsRunning";
 
 	private static final String ACTION_START_CLIENT = TAG + ".action.START_CLIENT";
@@ -60,25 +71,112 @@ public class CopyPasteService extends Service {
 	private static final String ACTION_STOP         = TAG + ".action.STOP";
 
 
+	private static final int ROLE_UNKNOWN = 0;
+	public static final  int ROLE_CLIENT  = 1;
+	public static final  int ROLE_SERVER  = 2;
+
+	@IntDef(value = {
+		ROLE_CLIENT,
+		ROLE_SERVER
+	})
+	public @interface RoleDef {
+	}
+
+	public interface Callback {
+
+		void onStart(@RoleDef int role);
+
+		void onStop();
+
+		void onError();
+
+
+		void onClipChanged(ClipData clipData);
+
+	}
+
+
+	private static final int CALLBACK_SIGNAL_ON_START        = 1;
+	private static final int CALLBACK_SIGNAL_ON_STOP         = 2;
+	private static final int CALLBACK_SIGNAL_ON_ERROR        = 3;
+	private static final int CALLBACK_SIGNAL_ON_CLIP_CHANGED = 4;
+
+
 	private static final String ACTION_SERVICE_CALLBACK = TAG + ".action.SERVICE_CALLBACK";
 
+	private static final String EXTRA_CALLBACK_SIGNAL = "CopyPasteService.extraCallbackSignal";
+	private static final String EXTRA_CLIP            = "CopyPasteService.extraClip";
+	private static final String EXTRA_ROLE            = "CopyPasteService.extraRole";
 
-	public static final String CALLBACK_EXTRA_CLIENT_CONNECTED = TAG + ".extraClientConnected";
+	private static final class CallbackBroadcastReceiver extends BroadcastReceiver {
 
-	public static void registerCallbackReceiver(@NonNull Context context,
-		@NonNull BroadcastReceiver receiver) {
+		final Set<Callback> callbacks = new HashSet<>();
 
-		LocalBroadcastManager.getInstance(context)
-			.registerReceiver(receiver, new IntentFilter(ACTION_SERVICE_CALLBACK));
+		private void forEachCallback(Delegate<Callback> callbackDelegate) {
+			//noinspection Convert2streamapi
+			for (Callback callback : new LinkedList<>(callbacks)) {
+				callbackDelegate.invoke(callback);
+			}
+		}
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			switch (intent.getIntExtra(EXTRA_CALLBACK_SIGNAL, 0)) {
+				case CALLBACK_SIGNAL_ON_START: {
+					final int role = intent.getIntExtra(EXTRA_ROLE, ROLE_UNKNOWN);
+
+					forEachCallback(target -> target.onStart(role));
+					break;
+				}
+				case CALLBACK_SIGNAL_ON_STOP:
+					forEachCallback(Callback::onStop);
+					break;
+				case CALLBACK_SIGNAL_ON_ERROR:
+					forEachCallback(Callback::onError);
+					break;
+				case CALLBACK_SIGNAL_ON_CLIP_CHANGED: {
+					final ClipData clipData = intent.getParcelableExtra(EXTRA_CLIP);
+
+					forEachCallback(target -> target.onClipChanged(clipData));
+					break;
+				}
+			}
+		}
 	}
 
-	public static void unregisterCallbackReceiver(@NonNull Context context,
-		@NonNull BroadcastReceiver receiver) {
+	private static final Lazy<CallbackBroadcastReceiver> callbackReceiverLazy
+		= new Lazy<CallbackBroadcastReceiver>() {
 
-		LocalBroadcastManager.getInstance(context)
-			.unregisterReceiver(receiver);
+		@Override
+		protected CallbackBroadcastReceiver initialize() {
+			return new CallbackBroadcastReceiver();
+		}
+	};
+
+	public static void registerCallback(Callback callback) {
+		boolean needRegister = callbackReceiverLazy.isEmpty();
+
+		CallbackBroadcastReceiver callbackBroadcastReceiver = callbackReceiverLazy.get();
+
+		if (needRegister) {
+			LocalBroadcastManager.getInstance(application)
+				.registerReceiver(callbackBroadcastReceiver, new IntentFilter(ACTION_SERVICE_CALLBACK));
+		}
+		callbackBroadcastReceiver.callbacks.add(callback);
 	}
 
+	public static void unregisterCallback(Callback callback) {
+		if (!callbackReceiverLazy.isEmpty()) {
+			CallbackBroadcastReceiver callbackBroadcastReceiver = callbackReceiverLazy.get();
+
+			if (callbackBroadcastReceiver.callbacks.remove(callback)
+				&& callbackBroadcastReceiver.callbacks.isEmpty()) {
+
+				LocalBroadcastManager.getInstance(application)
+					.unregisterReceiver(callbackBroadcastReceiver);
+			}
+		}
+	}
 
 	public static void startServer(@NonNull Context context) {
 		context.startService(
@@ -179,14 +277,19 @@ public class CopyPasteService extends Service {
 
 	private void setClipValue(Handler handler, String clipText) {
 		if (!TextUtils.isEmpty(clipText)) {
-			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(
-				new ClipData(TAG, new String[]{NanoHTTPD.MIME_PLAINTEXT},
-					new ClipData.Item(clipText)));
+			ClipData clipData = new ClipData(TAG, new String[]{NanoHTTPD.MIME_PLAINTEXT},
+				new ClipData.Item(clipText));
 
-			handler.post(() -> // preserve new line
-				Toast.makeText(CopyPasteService.this, R.string.label_clip_updated,
-					Toast.LENGTH_LONG)
-					.show());
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(clipData);
+
+			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+				CopyPasteService.class);
+			{
+				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_CLIP_CHANGED);
+				broadcast.putExtra(EXTRA_CLIP, clipData);
+			}
+			LocalBroadcastManager.getInstance(CopyPasteService.this)
+				.sendBroadcast(broadcast);
 		}
 	}
 
@@ -215,17 +318,8 @@ public class CopyPasteService extends Service {
 
 		@Override
 		public void onOpen(ServerHandshake handshakedata) {
-			((ClipboardManager) getSystemService(
-				CLIPBOARD_SERVICE)).addPrimaryClipChangedListener(this);
-
-			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
-				CopyPasteService.class);
-			{
-				broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED,
-					(int) handshakedata.getHttpStatus());
-			}
-			LocalBroadcastManager.getInstance(CopyPasteService.this)
-				.sendBroadcast(broadcast);
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
+				.addPrimaryClipChangedListener(this);
 		}
 
 		@Override
@@ -246,7 +340,7 @@ public class CopyPasteService extends Service {
 			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
 				CopyPasteService.class);
 			{
-				broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
+				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
 			}
 			LocalBroadcastManager.getInstance(CopyPasteService.this)
 				.sendBroadcast(broadcast);
@@ -304,15 +398,14 @@ public class CopyPasteService extends Service {
 						executor.execute(client);
 						setRunningAction(this, intent.getAction());
 
-						Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
-							CopyPasteService.class);
+						Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
+							CopyPasteService.this, CopyPasteService.class);
 						{
-							broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 200);
+							broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
+							broadcast.putExtra(EXTRA_ROLE, ROLE_CLIENT);
 						}
 						LocalBroadcastManager.getInstance(CopyPasteService.this)
 							.sendBroadcast(broadcast);
-
-						setClipValue(handler, data.text);
 					});
 				}
 				finally {
@@ -325,7 +418,7 @@ public class CopyPasteService extends Service {
 				Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
 					CopyPasteService.class);
 				{
-					broadcast.putExtra(CALLBACK_EXTRA_CLIENT_CONNECTED, 500);
+					broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
 				}
 				LocalBroadcastManager.getInstance(CopyPasteService.this)
 					.sendBroadcast(broadcast);
@@ -380,7 +473,13 @@ public class CopyPasteService extends Service {
 
 			@Override
 			protected void onException(IOException exception) {
-				/* Nothing to do */
+				Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+					CopyPasteService.class);
+				{
+					broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
+				}
+				LocalBroadcastManager.getInstance(CopyPasteService.this)
+					.sendBroadcast(broadcast);
 			}
 
 			@Override
@@ -621,6 +720,15 @@ public class CopyPasteService extends Service {
 			server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 
 			setRunningAction(this, ACTION_START_SERVER);
+
+			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+				CopyPasteService.class);
+			{
+				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
+				broadcast.putExtra(EXTRA_ROLE, ROLE_SERVER);
+			}
+			LocalBroadcastManager.getInstance(CopyPasteService.this)
+				.sendBroadcast(broadcast);
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -650,7 +758,17 @@ public class CopyPasteService extends Service {
 					server = null;
 				}
 				break;
+
+			default:
+				return;
 		}
+		Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+			CopyPasteService.class);
+		{
+			broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_STOP);
+		}
+		LocalBroadcastManager.getInstance(CopyPasteService.this)
+			.sendBroadcast(broadcast);
 	}
 
 

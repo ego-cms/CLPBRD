@@ -2,14 +2,19 @@ package com.ego_cms.copypaste;
 
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.ViewCompat;
@@ -25,6 +30,7 @@ import com.ego_cms.copypaste.util.AndroidCommonUtils;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 import butterknife.Bind;
@@ -60,24 +66,78 @@ public class MainActivity extends ActivityBaseCompat {
 	@Bind(R.id.text_network_address)
 	TextView textNetworkAddress;
 
+	@Bind(R.id.text_network_address_hint)
+	TextView textNetworkAddressHint;
+
 	@Bind(R.id.button_contact_us)
 	TextView buttonContactUs;
+
+
+	private final class CopyPasteServiceCallback extends BroadcastReceiver
+		implements CopyPasteService.Callback {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			if (!isLocalNetworkAvailable(context)) {
+				CopyPasteService.stop(context);
+
+				// TODO: display 'network is unreachable' error here.
+				transitionServiceDisabledState(MainActivity.this::transitionMagicHintIn);
+			}
+		}
+
+		@Override
+		public void onStart(@CopyPasteService.RoleDef int role) {
+			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+		}
+
+		@Override
+		public void onStop() {
+			CopyPasteService.unregisterCallback(this);
+			unregisterReceiver(this);
+		}
+
+		@Override
+		public void onError() {
+			CopyPasteService.unregisterCallback(this);
+			unregisterReceiver(this);
+			transitionServiceDisabledState(MainActivity.this::transitionMagicHintIn);
+		}
+
+		@Override
+		public void onClipChanged(ClipData clipData) {
+			/* Nothing to do */
+		}
+	}
+
+
+	private final CopyPasteService.Callback COPY_PASTE_SERVICE_CALLBACK
+		= new CopyPasteServiceCallback();
 
 
 	@OnClick(R.id.button_service_toggle)
 	void onServiceToggleButtonClick() {
 		if (CopyPasteService.isRunning(this)) {
+			CopyPasteService.unregisterCallback(COPY_PASTE_SERVICE_CALLBACK);
 			CopyPasteService.stop(this);
 			transitionServiceDisabledState(this::transitionMagicHintIn);
 		}
 		else {
-			textNetworkAddress.setText(
-				String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
-					BuildConfig.SERVER_PORT));
+			if (isLocalNetworkAvailable(this)) {
+				textNetworkAddress.setText(
+					String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
+						BuildConfig.SERVER_PORT));
 
-			CopyPasteService.startServer(this);
-			transitionServiceEnabledState();
-			transitionMagicHintOut();
+				textNetworkAddressHint.setText(R.string.label_service_browser_hint);
+
+				CopyPasteService.registerCallback(COPY_PASTE_SERVICE_CALLBACK);
+				CopyPasteService.startServer(this);
+				transitionServiceEnabledState();
+				transitionMagicHintOut();
+			}
+			else {
+				// TODO: display 'network is unreachable' error here.
+			}
 		}
 	}
 
@@ -269,13 +329,11 @@ public class MainActivity extends ActivityBaseCompat {
 						.x(scanQRButtonOrigin.x)
 						.y(scanQRButtonOrigin.y);
 
-					backgroundAnimated
-						= AnimatedVectorDrawableCompat.create(this,
+					backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
 						R.drawable.bg_button_group_animated_backward);
 				}
 				else {
-					backgroundAnimated
-						= AnimatedVectorDrawableCompat.create(this,
+					backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
 						R.drawable.bg_button_group_animated_no_camera_backward);
 				}
 				if (backgroundAnimated != null) {
@@ -390,36 +448,54 @@ public class MainActivity extends ActivityBaseCompat {
 							}
 							progress.show();
 
-							CopyPasteService.registerCallbackReceiver(this,
-								new BroadcastReceiver() {
-									@Override
-									public void onReceive(Context context, Intent intent) {
-										CopyPasteService.unregisterCallbackReceiver(context, this);
+							CopyPasteService.registerCallback(new CopyPasteService.Callback() {
+								@Override
+								public void onStart(@CopyPasteService.RoleDef int role) {
+									textNetworkAddress.setText(
+										String.format(Locale.US, "http://%s:%d", uri.getAuthority(),
+											BuildConfig.SERVER_PORT));
 
-										int status = intent.getIntExtra(
-											CopyPasteService.CALLBACK_EXTRA_CLIENT_CONNECTED, -1);
+									textNetworkAddressHint.setText(
+										R.string.label_service_client_hint);
 
-										if (status == 200) {
-											transitionServiceEnabledState();
-											transitionMagicHintOut();
-										}
-										else {
+									transitionServiceEnabledState();
+									transitionMagicHintOut();
+
+									anyway();
+								}
+
+								@Override
+								public void onStop() {
+									anyway();
+								}
+
+								@Override
+								public void onError() {
+									new AlertDialog.Builder(MainActivity.this).setTitle(
+										R.string.title_dialog_error_connection)
+										.setMessage(
+											getString(R.string.message_dialog_error_connection,
+												getString(R.string.application_name)))
+										.setPositiveButton(R.string.button_positive_generic, null)
+										.setOnDismissListener(dialog -> {
 											bringMagicHintIn();
 											displayServiceDisabledState();
+										})
+										.show();
 
-											new AlertDialog.Builder(MainActivity.this).setTitle(
-												R.string.title_dialog_error_connection)
-												.setMessage(getString(
-													R.string.message_dialog_error_connection,
-													getString(R.string.application_name)))
-												.setPositiveButton(R.string.button_positive_generic,
-													null)
-												.show();
-										}
-										progress.dismiss();
-									}
-								});
+									anyway();
+								}
 
+								@Override
+								public void onClipChanged(ClipData clipData) {
+									/* Nothing to do */
+								}
+
+								private void anyway() {
+									CopyPasteService.unregisterCallback(this);
+									progress.dismiss();
+								}
+							});
 							getMainHandler().post(
 								() -> CopyPasteService.startClient(this, uri.getAuthority(),
 									BuildConfig.SERVER_PORT));
@@ -438,11 +514,22 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 	}
 
-	private PointF takeCenter(View v) {
+	private static PointF takeCenter(View v) {
 		return new PointF(v.getX() + v.getWidth() / 2.f, v.getY() + v.getHeight() / 2.f);
 	}
 
-	private PointF takeOrigin(View v) {
+	private static PointF takeOrigin(View v) {
 		return new PointF(v.getX(), v.getY());
+	}
+
+	public static boolean isLocalNetworkAvailable(@NonNull Context context) {
+		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
+			Context.CONNECTIVITY_SERVICE);
+
+		NetworkInfo info = cm.getActiveNetworkInfo();
+
+		return info != null && Arrays.asList(ConnectivityManager.TYPE_WIFI,
+			ConnectivityManager.TYPE_ETHERNET)
+			.contains(info.getType());
 	}
 }
