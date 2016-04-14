@@ -19,6 +19,8 @@
 	<string name="title_dialog_error_bad_qr">Sorry, this didn\'t work</string>
 	<string name="message_dialog_error_bad_qr" formatted="true">QR code You have just scanned does not contain %1$s connection information.\n\nPlease, scan a QR code in %1$s App that is running on another device to get connected.</string>
 
+	<string name="title_dialog_error_network_unreachable">Network unreachable</string>
+	<string name="message_dialog_error_network_unreachable">Please, check your connection status and try again!</string>
 	<string name="title_dialog_error_connection">Not connected</string>
 	<string name="message_dialog_error_connection">%s host is unreachable. Please, check your network connection and try again.</string>
 	<string name="title_dialog_progress_connecting">Connecting…</string>

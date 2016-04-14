@@ -81,8 +81,13 @@ public class MainActivity extends ActivityBaseCompat {
 			if (!isLocalNetworkAvailable(context)) {
 				CopyPasteService.stop(context);
 
-				// TODO: display 'network is unreachable' error here.
-				transitionServiceDisabledState(MainActivity.this::transitionMagicHintIn);
+				new AlertDialog.Builder(MainActivity.this).setTitle(
+					R.string.title_dialog_error_network_unreachable)
+					.setMessage(R.string.message_dialog_error_network_unreachable)
+					.setPositiveButton(R.string.button_positive_generic, null)
+					.setOnDismissListener(dialog -> transitionServiceDisabledState(
+						MainActivity.this::transitionMagicHintIn))
+					.show();
 			}
 		}
 
@@ -101,7 +106,14 @@ public class MainActivity extends ActivityBaseCompat {
 		public void onError() {
 			CopyPasteService.unregisterCallback(this);
 			unregisterReceiver(this);
-			transitionServiceDisabledState(MainActivity.this::transitionMagicHintIn);
+
+			new AlertDialog.Builder(MainActivity.this).setTitle(
+				R.string.title_dialog_error_network_unreachable)
+				.setMessage(R.string.message_dialog_error_network_unreachable)
+				.setPositiveButton(R.string.button_positive_generic, null)
+				.setOnDismissListener(dialog -> transitionServiceDisabledState(
+					MainActivity.this::transitionMagicHintIn))
+				.show();
 		}
 
 		@Override
@@ -118,7 +130,6 @@ public class MainActivity extends ActivityBaseCompat {
 	@OnClick(R.id.button_service_toggle)
 	void onServiceToggleButtonClick() {
 		if (CopyPasteService.isRunning(this)) {
-			CopyPasteService.unregisterCallback(COPY_PASTE_SERVICE_CALLBACK);
 			CopyPasteService.stop(this);
 			transitionServiceDisabledState(this::transitionMagicHintIn);
 		}
@@ -136,7 +147,11 @@ public class MainActivity extends ActivityBaseCompat {
 				transitionMagicHintOut();
 			}
 			else {
-				// TODO: display 'network is unreachable' error here.
+				new AlertDialog.Builder(MainActivity.this).setTitle(
+					R.string.title_dialog_error_network_unreachable)
+					.setMessage(R.string.message_dialog_error_network_unreachable)
+					.setPositiveButton(R.string.button_positive_generic, null)
+					.show();
 			}
 		}
 	}
