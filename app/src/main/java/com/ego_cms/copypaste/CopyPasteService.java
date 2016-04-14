@@ -84,7 +84,7 @@ public class CopyPasteService extends Service {
 
 	public interface Callback {
 
-		void onStart(@RoleDef int role);
+		void onStart(@RoleDef int role, String ipAddress);
 
 		void onStop();
 
@@ -106,6 +106,7 @@ public class CopyPasteService extends Service {
 
 	private static final String EXTRA_CALLBACK_SIGNAL = "CopyPasteService.extraCallbackSignal";
 	private static final String EXTRA_CLIP            = "CopyPasteService.extraClip";
+	private static final String EXTRA_IP_ADDRESS      = "CopyPasteService.extraIPAddress";
 	private static final String EXTRA_ROLE            = "CopyPasteService.extraRole";
 
 	private static final class CallbackBroadcastReceiver extends BroadcastReceiver {
@@ -125,7 +126,8 @@ public class CopyPasteService extends Service {
 				case CALLBACK_SIGNAL_ON_START: {
 					final int role = intent.getIntExtra(EXTRA_ROLE, ROLE_UNKNOWN);
 
-					forEachCallback(target -> target.onStart(role));
+					forEachCallback(
+						target -> target.onStart(role, intent.getStringExtra(EXTRA_IP_ADDRESS)));
 					break;
 				}
 				case CALLBACK_SIGNAL_ON_STOP:
@@ -160,7 +162,8 @@ public class CopyPasteService extends Service {
 
 		if (needRegister) {
 			LocalBroadcastManager.getInstance(application)
-				.registerReceiver(callbackBroadcastReceiver, new IntentFilter(ACTION_SERVICE_CALLBACK));
+				.registerReceiver(callbackBroadcastReceiver,
+					new IntentFilter(ACTION_SERVICE_CALLBACK));
 		}
 		callbackBroadcastReceiver.callbacks.add(callback);
 	}
@@ -402,6 +405,7 @@ public class CopyPasteService extends Service {
 							CopyPasteService.this, CopyPasteService.class);
 						{
 							broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
+							broadcast.putExtra(EXTRA_IP_ADDRESS, data.host);
 							broadcast.putExtra(EXTRA_ROLE, ROLE_CLIENT);
 						}
 						LocalBroadcastManager.getInstance(CopyPasteService.this)
@@ -718,13 +722,13 @@ public class CopyPasteService extends Service {
 
 		try {
 			server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-
 			setRunningAction(this, ACTION_START_SERVER);
 
 			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
 				CopyPasteService.class);
 			{
 				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
+				broadcast.putExtra(EXTRA_IP_ADDRESS, getNetworkAddress());
 				broadcast.putExtra(EXTRA_ROLE, ROLE_SERVER);
 			}
 			LocalBroadcastManager.getInstance(CopyPasteService.this)
@@ -758,10 +762,13 @@ public class CopyPasteService extends Service {
 					server = null;
 				}
 				break;
-
-			default:
-				return;
 		}
+	}
+
+	private void onStopService() {
+		setRunningAction(this, null);
+		stopSelf();
+
 		Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
 			CopyPasteService.class);
 		{
@@ -789,18 +796,19 @@ public class CopyPasteService extends Service {
 		else {
 			action = actionCurrent;
 		}
-		stopRunningActions(actionCurrent);
-
 		switch (action) {
 			case ACTION_START_CLIENT:
+				stopRunningActions(actionCurrent);
 				return onStartClient(intent);
 			case ACTION_START_SERVER:
+				stopRunningActions(actionCurrent);
 				return onStartServer(intent);
 			case ACTION_STOP:
-				setRunningAction(this, null);
-				stopSelf();
+				stopRunningActions(actionCurrent);
+				onStopService();
+				return START_NOT_STICKY;
 		}
-		return START_NOT_STICKY;
+		throw new Error("Unknown action is given.");
 	}
 
 	@Nullable

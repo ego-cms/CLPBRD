@@ -24,6 +24,6 @@
 		android:layout_below="@id/image_qr_code"
 		android:layout_marginTop="@dimen/gap_size_default"
 		android:gravity="center"
-		android:text="@string/label_service_qr_hint"/>
+		android:text="@string/label_service_qr_code_hint"/>
 
 </RelativeLayout>

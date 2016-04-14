@@ -7,6 +7,8 @@
 	<string name="button_positive_generic">OK</string>
 
 	<string name="content_description_scan_qr">Scan QR code to connect with peer.</string>
+	<string name="content_notification_is_running_as_service" formatted="true">Your IP address is: %s</string>
+	<string name="content_notification_is_running_as_client" formatted="true">You\'re connected to: %s</string>
 
 	<string name="label_clip_updated">Clipboard Text Received!</string>
 	<string name="label_magic">Magic\nbutton</string>
@@ -14,7 +16,8 @@
 	<string name="label_service_browser_hint">Connect to this address in your browser</string>
 	<string name="label_service_client_hint">You\'re connected to this address</string>
 	<string name="label_service_hint">Send clipboard between your phone,\ndesktop or another phone.\n\nTurn service on and just copy and paste.</string>
-	<string name="label_service_qr_hint">Scan this code in %s App running on\nanother device to get connected</string>
+	<string name="label_service_qr_code_hint">Scan this code in %s App running on\nanother device to get connected</string>
+	<string name="label_service_qr_feature_hint">OR Scan QR code\non another device</string>
 
 	<string name="title_dialog_error_bad_qr">Sorry, this didn\'t work</string>
 	<string name="message_dialog_error_bad_qr" formatted="true">QR code You have just scanned does not contain %1$s connection information.\n\nPlease, scan a QR code in %1$s App that is running on another device to get connected.</string>
@@ -24,5 +27,7 @@
 	<string name="title_dialog_error_connection">Not connected</string>
 	<string name="message_dialog_error_connection">%s host is unreachable. Please, check your network connection and try again.</string>
 	<string name="title_dialog_progress_connecting">Connecting…</string>
+	<string name="title_notification_is_running_as_service" formatted="true">%s is running as service!</string>
+	<string name="title_notification_is_running_as_client" formatted="true">%s is running as client!</string>
 
 </resources>

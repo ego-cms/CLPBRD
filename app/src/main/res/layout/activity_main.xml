@@ -168,6 +168,15 @@
 	</RelativeLayout>
 
 	<TextView
+		android:id="@+id/text_qr_feature_hint"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/group_service_controls"
+		android:layout_centerHorizontal="true"
+		android:layout_marginTop="@dimen/gap_size_three_halves"
+		android:text="@string/label_service_qr_feature_hint"/>
+
+	<TextView
 		android:id="@+id/button_contact_us"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"

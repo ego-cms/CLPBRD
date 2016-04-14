@@ -69,6 +69,9 @@ public class MainActivity extends ActivityBaseCompat {
 	@Bind(R.id.text_network_address_hint)
 	TextView textNetworkAddressHint;
 
+	@Bind(R.id.text_qr_feature_hint)
+	TextView textQRFeatureHint;
+
 	@Bind(R.id.button_contact_us)
 	TextView buttonContactUs;
 
@@ -92,7 +95,7 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 
 		@Override
-		public void onStart(@CopyPasteService.RoleDef int role) {
+		public void onStart(@CopyPasteService.RoleDef int role, String ipAddress) {
 			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 		}
 
@@ -265,6 +268,7 @@ public class MainActivity extends ActivityBaseCompat {
 		groupNetworkAddress.setVisibility(View.VISIBLE);
 		buttonServiceToggle.setText(R.string.button_service_toggle_activated);
 		buttonServiceToggle.setActivated(true);
+		textQRFeatureHint.setVisibility(View.INVISIBLE);
 	}
 
 	private void transitionServiceEnabledState() {
@@ -308,6 +312,12 @@ public class MainActivity extends ActivityBaseCompat {
 		groupNetworkAddress.setVisibility(View.VISIBLE);
 		ViewCompat.animate(groupNetworkAddress)
 			.alpha(1);
+
+		textQRFeatureHint.setAlpha(1);
+		textQRFeatureHint.setVisibility(View.VISIBLE);
+		ViewCompat.animate(textQRFeatureHint)
+			.withEndAction(() -> textQRFeatureHint.setVisibility(View.INVISIBLE))
+			.alpha(0);
 	}
 
 	private void displayServiceDisabledState() {
@@ -327,6 +337,8 @@ public class MainActivity extends ActivityBaseCompat {
 		groupNetworkAddress.setVisibility(View.INVISIBLE);
 		buttonServiceToggle.setText(R.string.button_service_toggle_normal);
 		buttonServiceToggle.setActivated(false);
+		textQRFeatureHint.setVisibility(View.VISIBLE);
+		textQRFeatureHint.setAlpha(1);
 	}
 
 	private void transitionServiceDisabledState(Runnable onComplete) {
@@ -368,6 +380,11 @@ public class MainActivity extends ActivityBaseCompat {
 				ViewCompat.animate(groupNetworkAddress)
 					.alpha(0)
 					.withEndAction(() -> groupNetworkAddress.setVisibility(View.INVISIBLE));
+
+				textQRFeatureHint.setAlpha(0);
+				textQRFeatureHint.setVisibility(View.VISIBLE);
+				ViewCompat.animate(textQRFeatureHint)
+					.alpha(1);
 
 				onComplete.run();
 			});
@@ -465,7 +482,8 @@ public class MainActivity extends ActivityBaseCompat {
 
 							CopyPasteService.registerCallback(new CopyPasteService.Callback() {
 								@Override
-								public void onStart(@CopyPasteService.RoleDef int role) {
+								public void onStart(@CopyPasteService.RoleDef int role,
+									String ipAddress) {
 									textNetworkAddress.setText(
 										String.format(Locale.US, "http://%s:%d", uri.getAuthority(),
 											BuildConfig.SERVER_PORT));
