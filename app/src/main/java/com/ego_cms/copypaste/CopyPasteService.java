@@ -19,6 +19,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.ego_cms.copypaste.util.AndroidCommonUtils;
 import com.ego_cms.copypaste.util.Delegate;
 import com.ego_cms.copypaste.util.Lazy;
 import com.ego_cms.copypaste.util.QueueThread;
@@ -29,6 +30,7 @@ import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Inet4Address;
@@ -38,6 +40,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.CharBuffer;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -567,8 +570,24 @@ public class CopyPasteService extends Service {
 
 	private NanoHTTPD.Response endpointIndex(String url, NanoHTTPD.IHTTPSession session)
 		throws Exception {
-		return NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_HTML,
-			getAssets().open(ROOT_FOLDER + "/index.html"));
+		StringBuilder page = new StringBuilder();
+		{
+			InputStreamReader reader = new InputStreamReader(
+				getAssets().open(ROOT_FOLDER + "/index.html"), "utf-8");
+
+			CharBuffer buffer = CharBuffer.allocate(32768);
+
+			int countRead;
+			while ((countRead = reader.read(buffer)) > 0) {
+				page.append(buffer.subSequence(0, countRead)
+					.array());
+			}
+		}
+		return NanoHTTPD.newChunkedResponse( // preserve new line
+			NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_HTML, new ByteArrayInputStream(
+				AndroidCommonUtils.interpolateTextFromResourcesToHTML(page, this)
+					.toString()
+					.getBytes()));
 	}
 
 	private NanoHTTPD.Response endpointResources(String url, NanoHTTPD.IHTTPSession session)

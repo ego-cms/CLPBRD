@@ -184,6 +184,6 @@
 		android:layout_centerHorizontal="true"
 		android:drawablePadding="@dimen/gap_size_default"
 		android:gravity="center"
-		android:text="@string/label_promotion"/>
+		android:text="@string/label_credits"/>
 
 </RelativeLayout>

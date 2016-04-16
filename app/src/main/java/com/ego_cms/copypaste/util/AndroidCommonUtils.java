@@ -3,12 +3,14 @@ package com.ego_cms.copypaste.util;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
 import android.support.annotation.ColorRes;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +19,13 @@ import android.view.ViewTreeObserver;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.MatchResult;
+import java.util.regex.Pattern;
 
 public final class AndroidCommonUtils {
 
@@ -28,6 +37,69 @@ public final class AndroidCommonUtils {
 	public static String makeIntentExtraName(@NotNull Class<?> cls, @NotNull String extraName) {
 		return String.format("%s.EXTRA_%s", cls.getName(), extraName.replaceAll("[^\\w\\d]", "_")
 			.toUpperCase());
+	}
+
+
+	public static CharSequence interpolateTextFromResourcesToHTML(CharSequence text,
+		Context context) {
+		Map<String, StringInterpolator.Rule> rules = new HashMap<>();
+		{
+			DecimalFormat decimalFormat = new DecimalFormat("0.###");
+			rules.put("color", new AndroidResourcesInterpolatorRule(context) {
+				@Override
+				protected String getResourceValueText(int resourceId, String type) {
+					final int color = AndroidCommonUtils.getColorFrom(context, resourceId);
+
+					final int r = Color.red(color);
+					final int g = Color.green(color);
+					final int b = Color.blue(color);
+					final int a = Color.alpha(color);
+
+					return String.format(Locale.US, "rgba(%d, %d, %d, %s)", r, g, b,
+						decimalFormat.format(a / 255.f));
+				}
+			});
+			rules.put("string", new AndroidResourcesInterpolatorRule(context) {
+				@Override
+				protected String getResourceValueText(int resourceId, String type) {
+					return context.getString(resourceId);
+				}
+			});
+		}
+		return new StringInterpolator(Pattern.compile("@(?:(\\w+):)?(\\w+)\\/(\\w+)"), rules) {
+
+			@Override
+			protected String getRuleKey(MatchResult matchResult) {
+				return matchResult.group(2);
+			}
+		}.interpolate(text);
+	}
+
+	private static abstract class AndroidResourcesInterpolatorRule
+		implements StringInterpolator.Rule {
+
+		protected final Context context;
+
+		public AndroidResourcesInterpolatorRule(Context context) {
+			this.context = context;
+		}
+
+
+		protected abstract String getResourceValueText(int resourceId, String type);
+
+
+		@Override
+		public String apply(MatchResult match) {
+			String namespace = match.group(1);
+
+			if (TextUtils.isEmpty(namespace)) {
+				namespace = context.getPackageName();
+			}
+			String type = match.group(2);
+
+			return getResourceValueText(context.getResources()
+				.getIdentifier(match.group(3), type, namespace), type);
+		}
 	}
 
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<color name="debugRed">#f00</color>
+	<color name="debugGreen">#0f00ff00</color>
+	<color name="debugBlue">#0000ff</color>
+</resources>

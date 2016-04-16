@@ -13,4 +13,10 @@
 	<color name="paletteButtonToggleNormal">#4fc80d</color>
 	<color name="paletteButtonScanQRNormal">#e2b428</color>
 	<color name="paletteButtonScanQRPressed">#ab881e</color>
+
+	<color name="webPaletteBackground">@color/paletteForeground</color>
+	<color name="webPaletteEntryBackground">#80ffffff</color>
+	<color name="webPaletteEntryStroke">#bfffffff</color>
+	<color name="webPaletteWhite">@android:color/white</color>
+	<color name="webPaletteShadowColor">#42000000</color>
 </resources>

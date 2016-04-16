@@ -42,10 +42,14 @@ android {
 
         multiDexEnabled true
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments disableAnalytics: 'true'
 
         buildConfigField "int", "SERVER_PORT", "8080"
     }
     buildTypes {
+        debug {
+            minifyEnabled false
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -70,5 +74,12 @@ dependencies {
     compile 'org.nanohttpd:nanohttpd:2.3.0'
     compile 'org.nanohttpd:nanohttpd-websocket:2.3.0'
     compile 'uk.co.chrisjenx:calligraphy:2.1.0'
+
     testCompile 'junit:junit:4.12'
+
+    androidTestCompile 'org.hamcrest:hamcrest-library:1.1'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
+    androidTestCompile 'com.android.support.test:rules:0.4.1'
+    androidTestCompile 'com.android.support.test:runner:0.4.1'
+    androidTestCompile 'com.android.support:support-v4:23.2.1'
 }
