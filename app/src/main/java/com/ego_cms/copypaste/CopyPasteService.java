@@ -21,6 +21,7 @@ import android.util.Log;
 
 import com.ego_cms.copypaste.util.Delegate;
 import com.ego_cms.copypaste.util.Lazy;
+import com.ego_cms.copypaste.util.QueueThread;
 import com.google.gson.Gson;
 
 import org.java_websocket.client.WebSocketClient;
@@ -449,6 +450,10 @@ public class CopyPasteService extends Service {
 				super(handshakeRequest);
 			}
 
+
+			private QueueThread pingThread = new QueueThread(TAG);
+			private Runnable    pingTask   = this::ping;
+
 			@Override
 			protected void onOpen() {
 				((ClipboardManager) getSystemService(
@@ -461,6 +466,8 @@ public class CopyPasteService extends Service {
 			protected void onClose(WebSocketFrame.CloseCode code, String reason,
 				boolean initiatedByRemote) {
 
+				pingThread.getHandler()
+					.removeCallbacks(pingTask);
 				((ClipboardManager) getSystemService(
 					CLIPBOARD_SERVICE)).removePrimaryClipChangedListener(this);
 			}
@@ -472,18 +479,22 @@ public class CopyPasteService extends Service {
 
 			@Override
 			protected void onPong(WebSocketFrame pong) {
-				handler.postDelayed(this::ping, 5000);
+				pingThread.getHandler()
+					.postDelayed(pingTask, 5000);
 			}
 
 			@Override
 			protected void onException(IOException exception) {
-				Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
-					CopyPasteService.class);
-				{
-					broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
+				if (ClipboardServer.this.isAlive()) {
+					Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
+						CopyPasteService.this, CopyPasteService.class);
+					{
+						broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
+					}
+					LocalBroadcastManager.getInstance(CopyPasteService.this)
+						.sendBroadcast(broadcast);
 				}
-				LocalBroadcastManager.getInstance(CopyPasteService.this)
-					.sendBroadcast(broadcast);
+				exception.printStackTrace();
 			}
 
 			@Override
@@ -558,6 +569,19 @@ public class CopyPasteService extends Service {
 		throws Exception {
 		return NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_HTML,
 			getAssets().open(ROOT_FOLDER + "/index.html"));
+	}
+
+	private NanoHTTPD.Response endpointResources(String url, NanoHTTPD.IHTTPSession session)
+		throws Exception {
+		String mimeType = "*/*";
+
+		if (session.getUri()
+			.endsWith(".svg")) {
+
+			mimeType = "image/svg+xml";
+		}
+		return NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, mimeType,
+			getAssets().open(ROOT_FOLDER + session.getUri()));
 	}
 
 	private NanoHTTPD.Response endpointScript(String url, NanoHTTPD.IHTTPSession session)
@@ -717,6 +741,7 @@ public class CopyPasteService extends Service {
 		server = new Server(BuildConfig.SERVER_PORT);
 
 		server.register(NanoHTTPD.Method.GET, "/", this::endpointIndex);
+		server.register(NanoHTTPD.Method.GET, "/res", this::endpointResources);
 		server.register(NanoHTTPD.Method.GET, "/script", this::endpointScript);
 		server.register(NanoHTTPD.Method.GET, "/clipboard", this::endpointClipboard);
 
@@ -750,8 +775,6 @@ public class CopyPasteService extends Service {
 				break;
 			case ACTION_START_SERVER:
 				if (server != null) {
-					server.stop();
-
 					if (!clipboardServerLazy.isEmpty()) {
 						ClipboardServer clipboard = clipboardServerLazy.get();
 
@@ -759,6 +782,7 @@ public class CopyPasteService extends Service {
 							clipboard.stop();
 						}
 					}
+					server.stop();
 					server = null;
 				}
 				break;
