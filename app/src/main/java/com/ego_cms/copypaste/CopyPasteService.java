@@ -41,6 +41,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.CharBuffer;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -282,9 +283,9 @@ public class CopyPasteService extends Service {
 		return "";
 	}
 
-	private void setClipValue(Handler handler, String clipText) {
+	private void setClipValue(String label, String clipText) {
 		if (!TextUtils.isEmpty(clipText)) {
-			ClipData clipData = new ClipData(TAG, new String[]{NanoHTTPD.MIME_PLAINTEXT},
+			ClipData clipData = new ClipData(label, new String[]{NanoHTTPD.MIME_PLAINTEXT},
 				new ClipData.Item(clipText));
 
 			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(clipData);
@@ -304,12 +305,8 @@ public class CopyPasteService extends Service {
 	private final class ClipboardClient extends WebSocketClient
 		implements ClipboardManager.OnPrimaryClipChangedListener {
 
-		private final Handler handler;
-
 		public ClipboardClient(Uri serverURI) {
 			super(URI.create(serverURI.toString()), new Draft_17());
-
-			handler = new Handler(Looper.getMainLooper());
 		}
 
 
@@ -331,7 +328,7 @@ public class CopyPasteService extends Service {
 
 		@Override
 		public void onMessage(String message) {
-			setClipValue(handler, message);
+			setClipValue(TAG, message);
 		}
 
 		@Override
@@ -356,7 +353,14 @@ public class CopyPasteService extends Service {
 
 		@Override
 		public void onPrimaryClipChanged() {
-			send(getClipValue());
+			ClipData clipData = ((ClipboardManager) getSystemService(
+				CLIPBOARD_SERVICE)).getPrimaryClip();
+
+			if (!TAG.equals(clipData.getDescription()
+				.getLabel())) {
+
+				send(getClipValue());
+			}
 		}
 	}
 
@@ -388,6 +392,7 @@ public class CopyPasteService extends Service {
 				BufferedReader is = new BufferedReader(
 					new InputStreamReader(connection.getInputStream()));
 
+				//noinspection TryFinallyCanBeTryWithResources
 				try {
 					StringBuilder sb = new StringBuilder();
 
@@ -436,18 +441,16 @@ public class CopyPasteService extends Service {
 	}
 
 
-	private final class ClipboardServer extends NanoWSD {
-
-		private final Handler handler;
+	private final class ClipboardServer extends NanoWSD
+		implements ClipboardManager.OnPrimaryClipChangedListener {
 
 		public ClipboardServer() {
 			super(49152 + new Random(System.currentTimeMillis()).nextInt(16384));
-
-			handler = new Handler(Looper.getMainLooper());
 		}
 
-		private class Socket extends WebSocket
-			implements ClipboardManager.OnPrimaryClipChangedListener {
+		private Collection<Socket> openSockets = new HashSet<>();
+
+		private class Socket extends WebSocket {
 
 			public Socket(IHTTPSession handshakeRequest) {
 				super(handshakeRequest);
@@ -455,14 +458,23 @@ public class CopyPasteService extends Service {
 
 
 			private QueueThread pingThread = new QueueThread(TAG);
-			private Runnable    pingTask   = this::ping;
+			private Runnable    pingTask   = () -> {
+				try {
+					ping("".getBytes());
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			};
 
 			@Override
 			protected void onOpen() {
-				((ClipboardManager) getSystemService(
-					CLIPBOARD_SERVICE)).addPrimaryClipChangedListener(this);
-
-				ping();
+				if (openSockets.isEmpty()) {
+					((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
+						.addPrimaryClipChangedListener(ClipboardServer.this);
+				}
+				openSockets.add(this);
+				pingTask.run();
 			}
 
 			@Override
@@ -471,13 +483,18 @@ public class CopyPasteService extends Service {
 
 				pingThread.getHandler()
 					.removeCallbacks(pingTask);
-				((ClipboardManager) getSystemService(
-					CLIPBOARD_SERVICE)).removePrimaryClipChangedListener(this);
+
+				openSockets.remove(this);
+				if (openSockets.isEmpty()) {
+					((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
+						.removePrimaryClipChangedListener(ClipboardServer.this);
+				}
 			}
 
 			@Override
 			protected void onMessage(WebSocketFrame message) {
-				setClipValue(handler, message.getTextPayload());
+				setClipValue(String.format(Locale.US, TAG + ":socket%d", hashCode()),
+					message.getTextPayload());
 			}
 
 			@Override
@@ -499,37 +516,46 @@ public class CopyPasteService extends Service {
 				}
 				exception.printStackTrace();
 			}
-
-			@Override
-			public void onPrimaryClipChanged() {
-				ClipData clipData = ((ClipboardManager) getSystemService(
-					CLIPBOARD_SERVICE)).getPrimaryClip();
-
-				if (!TAG.equals(clipData.getDescription()
-					.getLabel())) {
-
-					try {
-						send(getClipValue(clipData));
-					}
-					catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-
-			private void ping() {
-				try {
-					ping("".getBytes());
-				}
-				catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
 
 		@Override
 		protected WebSocket openWebSocket(IHTTPSession handshake) {
 			return new Socket(handshake);
+		}
+
+		@Override
+		public void onPrimaryClipChanged() {
+			ClipData clipData = ((ClipboardManager) getSystemService(
+				CLIPBOARD_SERVICE)).getPrimaryClip();
+
+			final CharSequence clipLabel = clipData.getDescription()
+				.getLabel();
+
+			final Integer socketHashCode;
+			{
+				String clipLabelParts[] = clipLabel != null ? clipLabel.toString()
+					.split(":") : new String[0];
+
+				if (clipLabelParts.length > 1 && TAG.equals(clipLabelParts[0])) {
+					socketHashCode = Integer.parseInt(clipLabelParts[1].replace("socket", ""));
+				}
+				else {
+					socketHashCode = null;
+				}
+			}
+			//noinspection Convert2streamapi
+			for (WebSocket socket : openSockets) {
+				if (socketHashCode == null // preserve new line
+					|| socketHashCode != socket.hashCode()) {
+
+					try {
+						socket.send(getClipValue(clipData));
+					}
+					catch (IOException e) {
+						/* Nothing to do */
+					}
+				}
+			}
 		}
 	}
 
