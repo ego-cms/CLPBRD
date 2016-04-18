@@ -596,6 +596,7 @@ public class CopyPasteService extends Service {
 
 	private NanoHTTPD.Response endpointIndex(String url, NanoHTTPD.IHTTPSession session)
 		throws Exception {
+
 		StringBuilder page = new StringBuilder();
 		{
 			InputStreamReader reader = new InputStreamReader(
@@ -614,6 +615,13 @@ public class CopyPasteService extends Service {
 				AndroidCommonUtils.interpolateTextFromResourcesToHTML(page, this)
 					.toString()
 					.getBytes()));
+	}
+
+	private NanoHTTPD.Response endpointFavicon(String url, NanoHTTPD.IHTTPSession session)
+		throws Exception {
+
+		return NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, "image/png",
+			getAssets().open(ROOT_FOLDER + "/favicon.png"));
 	}
 
 	private NanoHTTPD.Response endpointResources(String url, NanoHTTPD.IHTTPSession session)
@@ -786,6 +794,7 @@ public class CopyPasteService extends Service {
 		server = new Server(BuildConfig.SERVER_PORT);
 
 		server.register(NanoHTTPD.Method.GET, "/", this::endpointIndex);
+		server.register(NanoHTTPD.Method.GET, "/favicon.ico", this::endpointFavicon);
 		server.register(NanoHTTPD.Method.GET, "/res", this::endpointResources);
 		server.register(NanoHTTPD.Method.GET, "/script", this::endpointScript);
 		server.register(NanoHTTPD.Method.GET, "/clipboard", this::endpointClipboard);

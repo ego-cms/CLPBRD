@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html style="background: @color/webPaletteBackground url(res/background.svg); background-repeat: no-repeat; background-size: cover; min-width: 480pt; height: 100%">
+<html style="background: @color/webPaletteBackground url(res/background.svg); background-repeat: no-repeat; background-size: cover; min-width: 480pt; height: 100%; overflow: hidden">
 <head>
     <style>
         @font-face {
@@ -13,6 +13,8 @@
         body {
         font-family: fontDefault;
         color: @color/webPaletteWhite;
+        overflow-y: auto;
+        height: 100%;
         }
         a {
         color: @color/webPaletteWhite;
@@ -60,33 +62,37 @@
     </style>
 </head>
 <body>
-<div style="width: 60%; height:100%; margin: 0 auto; position: relative; top: 0; bottom: 0">
-    <div style="min-height: 450pt; display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0">
-        <div style="text-align: center">
-            <img style="margin:auto" src="res/logo_product.svg"/>
-            <p>@string/web_page_subtitle</p>
-        </div>
-        <div style="height:40%; position: relative; display: block;">
-            <textarea id="entryClipboardText"></textarea>
-            <p id="labelError"
-               style="display: none; text-align: left; color: red; font-family: fontError; font-size: 8pt;  margin: 0; padding: 0;">
-                @string/web_page_connection_error_format</p>
-        </div>
-        <div style="position:relative; bottom: 10pt; top: 0; text-align: center;">
-            <div style="margin: 15pt; margin-top: 30pt">
-                <div id="buttonSend" class="floatingButton"
-                     style="display: inline-block; position: relative; margin: 0 auto; width: 52pt; height: 52pt">
-                    <svg width="52pt" height="52pt">
-                        <circle cx="26pt" cy="26pt" r="26pt" fill="#4fc80d"></circle>
-                    </svg>
-                    <p class="buttonTitle noselect">SEND</p>
+<div style="display: table; width: 100%; height: 100%;">
+    <div style="display: table-cell; height: 100%; vertical-align: middle;">
+        <div style="width: 60%; height:100%; margin: 0 auto; position: relative; top: 0; bottom: 0">
+            <div style="min-height: 450pt; display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0">
+                <div style="text-align: center">
+                    <img style="margin:auto" src="res/logo_product.svg"/>
+                    <p>@string/web_page_subtitle</p>
+                </div>
+                <div style="height:40%; position: relative; display: block;">
+                    <textarea id="entryClipboardText"></textarea>
+                    <p id="labelError"
+                       style="display: none; text-align: left; color: red; font-family: fontError; font-size: 8pt;  margin: 0; padding: 0;">
+                        @string/web_page_connection_error_format</p>
+                </div>
+                <div style="position:relative; bottom: 10pt; top: 0; text-align: center;">
+                    <div style="margin: 15pt; margin-top: 30pt">
+                        <div id="buttonSend" class="floatingButton"
+                             style="display: inline-block; position: relative; margin: 0 auto; width: 52pt; height: 52pt">
+                            <svg width="52pt" height="52pt">
+                                <circle cx="26pt" cy="26pt" r="26pt" fill="#4fc80d"></circle>
+                            </svg>
+                            <p class="buttonTitle noselect">SEND</p>
+                        </div>
+                    </div>
+                    <a href="http://ego-cms.com/" class="noselect" style="text-decoration: none;">
+                        @string/web_page_credits
+                        <img src="res/logo_authority.png"
+                             style="vertical-align: middle; margin-left: 5pt; width: 47pt; height: 27pt"/>
+                    </a>
                 </div>
             </div>
-            <a href="http://ego-cms.com/" class="noselect" style="text-decoration: none;">
-                @string/web_page_credits
-                <img src="res/logo_authority.png"
-                     style="vertical-align: middle; margin-left: 5pt; width: 47pt; height: 27pt"/>
-            </a>
         </div>
     </div>
 </div>
