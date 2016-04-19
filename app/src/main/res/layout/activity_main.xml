@@ -145,10 +145,11 @@
 			android:drawableLeft="@drawable/ic_link"
 			android:drawablePadding="@dimen/gap_size_default"
 			android:drawableStart="@drawable/ic_link"
-			android:text="http://192.168.1.122:8080"
 			android:textColor="@color/paletteTextTitleAlt"
 			android:textSize="21sp"
+			android:freezesText="true"
 
+			tools:text="http://192.168.1.122:8080"
 			tools:ignore="HardcodedText"/>
 
 		<TextView
@@ -160,9 +161,10 @@
 			android:layout_below="@id/text_network_address"
 			android:layout_marginLeft="24.5dp"
 			android:layout_marginStart="24.5dp"
-			android:text="@string/label_service_browser_hint"
 			android:textSize="11sp"
+			android:freezesText="true"
 
+			tools:text="@string/label_service_browser_hint"
 			tools:ignore="SmallSp"/>
 
 	</RelativeLayout>

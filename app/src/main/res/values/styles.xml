@@ -11,7 +11,7 @@
 		<item name="colorPrimaryDark">@color/paletteBackground</item>
 		<item name="colorAccent">@color/paletteForeground</item>
 
-		<item name="android:buttonStyle">@style/Button.Generic</item>
+		<item name="buttonStyle">@style/Button.Generic</item>
 		<item name="android:textViewStyle">@style/TextView.Generic</item>
 		<item name="android:windowBackground">@drawable/bg_generic</item>
 	</style>
