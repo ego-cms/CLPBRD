@@ -11,7 +11,6 @@ import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -30,7 +29,6 @@ import com.ego_cms.copypaste.util.AndroidCommonUtils;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
-import java.util.Arrays;
 import java.util.Locale;
 
 import butterknife.Bind;
@@ -81,7 +79,7 @@ public class MainActivity extends ActivityBaseCompat {
 
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			if (!isLocalNetworkAvailable(context)) {
+			if (!CopyPasteService.isLocalNetworkAvailable(context)) {
 				CopyPasteService.stop(context);
 
 				new AlertDialog.Builder(MainActivity.this).setTitle(
@@ -137,11 +135,9 @@ public class MainActivity extends ActivityBaseCompat {
 			transitionServiceDisabledState(this::transitionMagicHintIn);
 		}
 		else {
-			if (isLocalNetworkAvailable(this)) {
+			if (CopyPasteService.isLocalNetworkAvailable(this)) {
 				textNetworkAddress.setText(
-					String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
-						BuildConfig.SERVER_PORT));
-
+					getNetworkAddressFormatted(CopyPasteService.getDeviceNetworkAddress()));
 				textNetworkAddressHint.setText(R.string.label_service_browser_hint);
 
 				CopyPasteService.registerCallback(COPY_PASTE_SERVICE_CALLBACK);
@@ -173,7 +169,7 @@ public class MainActivity extends ActivityBaseCompat {
 	void onShowQRButtonClick() {
 		//noinspection ConstantConditions
 		AddressDisplayActivity.startAsync(this, // preserve new line
-			buttonShowQR, String.format("clpbrd://%s", CopyPasteService.getNetworkAddress()));
+			buttonShowQR, String.format("clpbrd://%s", CopyPasteService.getDeviceNetworkAddress()));
 	}
 
 	@OnClick(R.id.button_contact_us)
@@ -448,6 +444,24 @@ public class MainActivity extends ActivityBaseCompat {
 		setContentView(R.layout.activity_main);
 		ButterKnife.bind(this);
 
+		if (savedInstanceState == null) {
+			CopyPasteApplication.CopyPasteConnection connection = CopyPasteApplication.get(this)
+				.getCommonKeyValueStorage()
+				.load(CopyPasteApplication.KEY_CURRENTLY_CONNECTED_IP_ADDRESS,
+					CopyPasteApplication.CopyPasteConnection.class);
+
+			if (connection != null) {
+				switch (connection.role) {
+					case CopyPasteService.ROLE_CLIENT:
+						textNetworkAddressHint.setText(R.string.label_service_client_hint);
+						break;
+					case CopyPasteService.ROLE_SERVER:
+						textNetworkAddressHint.setText(R.string.label_service_browser_hint);
+						break;
+				}
+				textNetworkAddress.setText(getNetworkAddressFormatted(connection.ipAddress));
+			}
+		}
 		initializeView(() -> onViewInitialized(savedInstanceState != null));
 	}
 
@@ -485,8 +499,7 @@ public class MainActivity extends ActivityBaseCompat {
 								public void onStart(@CopyPasteService.RoleDef int role,
 									String ipAddress) {
 									textNetworkAddress.setText(
-										String.format(Locale.US, "http://%s:%d", uri.getAuthority(),
-											BuildConfig.SERVER_PORT));
+										getNetworkAddressFormatted(uri.getAuthority()));
 
 									textNetworkAddressHint.setText(
 										R.string.label_service_client_hint);
@@ -555,14 +568,9 @@ public class MainActivity extends ActivityBaseCompat {
 		return new PointF(v.getX(), v.getY());
 	}
 
-	public static boolean isLocalNetworkAvailable(@NonNull Context context) {
-		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
-			Context.CONNECTIVITY_SERVICE);
 
-		NetworkInfo info = cm.getActiveNetworkInfo();
-
-		return info != null && Arrays.asList(ConnectivityManager.TYPE_WIFI,
-			ConnectivityManager.TYPE_ETHERNET)
-			.contains(info.getType());
+	@NonNull
+	public String getNetworkAddressFormatted(String ipAddress) {
+		return String.format(Locale.US, "http://%s:%d", ipAddress, BuildConfig.SERVER_PORT);
 	}
 }

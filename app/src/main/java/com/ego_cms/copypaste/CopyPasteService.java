@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -41,6 +43,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.CharBuffer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -238,7 +241,7 @@ public class CopyPasteService extends Service {
 
 
 	@Nullable
-	public static String getNetworkAddress() {
+	public static String getDeviceNetworkAddress() {
 		try {
 			for (Enumeration<NetworkInterface> networkInterfaces
 				= NetworkInterface.getNetworkInterfaces(); networkInterfaces.hasMoreElements(); ) {
@@ -260,6 +263,17 @@ public class CopyPasteService extends Service {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	public static boolean isLocalNetworkAvailable(@NonNull Context context) {
+		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
+			Context.CONNECTIVITY_SERVICE);
+
+		NetworkInfo info = cm.getActiveNetworkInfo();
+
+		return info != null && Arrays.asList(ConnectivityManager.TYPE_WIFI,
+			ConnectivityManager.TYPE_ETHERNET)
+			.contains(info.getType());
 	}
 
 
@@ -435,6 +449,7 @@ public class CopyPasteService extends Service {
 				}
 				LocalBroadcastManager.getInstance(CopyPasteService.this)
 					.sendBroadcast(broadcast);
+				setRunningAction(this, null);
 			}
 		});
 		return START_REDELIVER_INTENT;
@@ -477,10 +492,7 @@ public class CopyPasteService extends Service {
 				pingTask.run();
 			}
 
-			@Override
-			protected void onClose(WebSocketFrame.CloseCode code, String reason,
-				boolean initiatedByRemote) {
-
+			private void close() {
 				pingThread.getHandler()
 					.removeCallbacks(pingTask);
 
@@ -489,6 +501,13 @@ public class CopyPasteService extends Service {
 					((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
 						.removePrimaryClipChangedListener(ClipboardServer.this);
 				}
+			}
+
+			@Override
+			protected void onClose(WebSocketFrame.CloseCode code, String reason,
+				boolean initiatedByRemote) {
+
+				close();
 			}
 
 			@Override
@@ -505,16 +524,7 @@ public class CopyPasteService extends Service {
 
 			@Override
 			protected void onException(IOException exception) {
-				if (ClipboardServer.this.isAlive()) {
-					Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
-						CopyPasteService.this, CopyPasteService.class);
-					{
-						broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
-					}
-					LocalBroadcastManager.getInstance(CopyPasteService.this)
-						.sendBroadcast(broadcast);
-				}
-				exception.printStackTrace();
+				close();
 			}
 		}
 
@@ -587,7 +597,7 @@ public class CopyPasteService extends Service {
 			ClipboardServer clipboard = clipboardServerLazy.get();
 
 			data.port = clipboard.getListeningPort();
-			data.host = getNetworkAddress();
+			data.host = getDeviceNetworkAddress();
 			data.text = getClipValue();
 		}
 		return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json",
@@ -807,7 +817,7 @@ public class CopyPasteService extends Service {
 				CopyPasteService.class);
 			{
 				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
-				broadcast.putExtra(EXTRA_IP_ADDRESS, getNetworkAddress());
+				broadcast.putExtra(EXTRA_IP_ADDRESS, getDeviceNetworkAddress());
 				broadcast.putExtra(EXTRA_ROLE, ROLE_SERVER);
 			}
 			LocalBroadcastManager.getInstance(CopyPasteService.this)

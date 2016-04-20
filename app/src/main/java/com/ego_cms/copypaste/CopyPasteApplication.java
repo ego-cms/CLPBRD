@@ -25,6 +25,23 @@ public class CopyPasteApplication extends Application {
 	}
 
 
+	public static final class CopyPasteConnection {
+
+		@CopyPasteService.RoleDef
+		public final int role;
+
+		public final String ipAddress;
+
+
+		public CopyPasteConnection(int role, String ipAddress) {
+			this.role = role;
+			this.ipAddress = ipAddress;
+		}
+	}
+
+	public static final String KEY_CURRENTLY_CONNECTED_IP_ADDRESS
+		= "CopyPasteApplication.keyCurrentlyConnectedIpAddress";
+
 	private static final int NOTIFICATION_ID = 1;
 
 	@Override
@@ -68,6 +85,8 @@ public class CopyPasteApplication extends Application {
 								.build());
 						break;
 				}
+				getCommonKeyValueStorage().store(KEY_CURRENTLY_CONNECTED_IP_ADDRESS,
+					new CopyPasteConnection(role, ipAddress));
 			}
 
 			@Override
