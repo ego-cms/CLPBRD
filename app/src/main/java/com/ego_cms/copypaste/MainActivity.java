@@ -267,6 +267,9 @@ public class MainActivity extends ActivityBaseCompat {
 		textQRFeatureHint.setVisibility(View.INVISIBLE);
 	}
 
+
+	private AnimatedVectorDrawableCompat enabledStateVectorDrawable;
+
 	private void transitionServiceEnabledState() {
 		AnimatedVectorDrawableCompat backgroundAnimated;
 
@@ -277,14 +280,21 @@ public class MainActivity extends ActivityBaseCompat {
 				.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
 				.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
 
-			backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-				R.drawable.bg_button_group_animated_forward);
+			if (enabledStateVectorDrawable == null) {
+				enabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+					R.drawable.bg_button_group_animated_forward);
+			}
+			backgroundAnimated = enabledStateVectorDrawable;
 		}
 		else {
-			backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-				R.drawable.bg_button_group_animated_no_camera_forward);
+			if (enabledStateVectorDrawable == null) {
+				enabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+					R.drawable.bg_button_group_animated_no_camera_forward);
+			}
+			backgroundAnimated = enabledStateVectorDrawable;
 		}
 		if (backgroundAnimated != null) {
+			backgroundAnimated.stop();
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
 			backgroundAnimated.start();
 		}
@@ -337,6 +347,9 @@ public class MainActivity extends ActivityBaseCompat {
 		textQRFeatureHint.setAlpha(1);
 	}
 
+
+	private AnimatedVectorDrawableCompat disabledStateVectorDrawable;
+
 	private void transitionServiceDisabledState(Runnable onComplete) {
 		ViewCompat.animate(groupServiceControls)
 			.setInterpolator(new AccelerateDecelerateInterpolator())
@@ -352,14 +365,21 @@ public class MainActivity extends ActivityBaseCompat {
 						.x(scanQRButtonOrigin.x)
 						.y(scanQRButtonOrigin.y);
 
-					backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-						R.drawable.bg_button_group_animated_backward);
+					if (disabledStateVectorDrawable == null) {
+						disabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+							R.drawable.bg_button_group_animated_backward);
+					}
+					backgroundAnimated = disabledStateVectorDrawable;
 				}
 				else {
-					backgroundAnimated = AnimatedVectorDrawableCompat.create(this,
-						R.drawable.bg_button_group_animated_no_camera_backward);
+					if (disabledStateVectorDrawable == null) {
+						disabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+							R.drawable.bg_button_group_animated_no_camera_backward);
+					}
+					backgroundAnimated = disabledStateVectorDrawable;
 				}
 				if (backgroundAnimated != null) {
+					backgroundAnimated.stop();
 					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
 						backgroundAnimated);
 					backgroundAnimated.start();
@@ -413,6 +433,8 @@ public class MainActivity extends ActivityBaseCompat {
 					magicImageOrigin = takeOrigin(magicImage);
 					scanQRButtonOrigin = takeOrigin(buttonScanQR);
 					toggleServiceButtonCenter = takeCenter(buttonServiceToggle);
+					groupServiceControls.getLayoutParams().height
+						= groupServiceControls.getHeight();
 
 					onComplete.run();
 				}
