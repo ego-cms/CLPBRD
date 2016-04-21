@@ -40,7 +40,6 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.CharBuffer;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -610,12 +609,11 @@ public class CopyPasteService extends Service {
 			InputStreamReader reader = new InputStreamReader(
 				getAssets().open(ROOT_FOLDER + "/index.html"), "utf-8");
 
-			CharBuffer buffer = CharBuffer.allocate(32768);
+			char buffer[] = new char[32768];
 
 			int countRead;
 			while ((countRead = reader.read(buffer)) > 0) {
-				page.append(buffer.subSequence(0, countRead)
-					.array());
+				page.append(buffer, 0, countRead);
 			}
 		}
 		return NanoHTTPD.newChunkedResponse( // preserve new line
