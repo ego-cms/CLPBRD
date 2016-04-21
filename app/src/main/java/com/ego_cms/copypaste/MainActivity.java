@@ -77,6 +77,11 @@ public class MainActivity extends ActivityBaseCompat {
 	private final class CopyPasteServiceCallback extends BroadcastReceiver
 		implements CopyPasteService.Callback {
 
+		public void restoreCallback() {
+			CopyPasteService.registerCallback(this);
+			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+		}
+
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			if (!CopyPasteService.isLocalNetworkAvailable(context)) {
@@ -109,7 +114,7 @@ public class MainActivity extends ActivityBaseCompat {
 			unregisterReceiver(this);
 
 			new AlertDialog.Builder(MainActivity.this).setTitle(
-				R.string.title_dialog_error_network_unreachable)
+				R.string.title_dialog_error_connection)
 				.setMessage(R.string.message_dialog_error_network_unreachable)
 				.setPositiveButton(R.string.button_positive_generic, null)
 				.setOnDismissListener(dialog -> transitionServiceDisabledState(
@@ -124,7 +129,7 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 
-	private final CopyPasteService.Callback COPY_PASTE_SERVICE_CALLBACK
+	private final CopyPasteServiceCallback COPY_PASTE_SERVICE_CALLBACK
 		= new CopyPasteServiceCallback();
 
 
@@ -446,6 +451,8 @@ public class MainActivity extends ActivityBaseCompat {
 		boolean isRunning = CopyPasteService.isRunning(this);
 
 		if (isRunning) {
+			COPY_PASTE_SERVICE_CALLBACK.restoreCallback();
+
 			displayServiceEnabledState();
 			bringMagicHintOut();
 		}
@@ -516,6 +523,7 @@ public class MainActivity extends ActivityBaseCompat {
 							}
 							progress.show();
 
+							CopyPasteService.registerCallback(COPY_PASTE_SERVICE_CALLBACK);
 							CopyPasteService.registerCallback(new CopyPasteService.Callback() {
 								@Override
 								public void onStart(@CopyPasteService.RoleDef int role,

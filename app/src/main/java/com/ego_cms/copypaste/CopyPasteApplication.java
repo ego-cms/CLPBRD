@@ -63,17 +63,6 @@ public class CopyPasteApplication extends Application {
 			@Override
 			public void onStart(@CopyPasteService.RoleDef int role, String ipAddress) {
 				switch (role) {
-					case CopyPasteService.ROLE_CLIENT:
-						NotificationManagerCompat.from(CopyPasteApplication.this)
-							.notify(NOTIFICATION_ID, buildNotification(
-								getString(R.string.title_notification_is_running_as_client,
-									getString(R.string.application_name)),
-								getString(R.string.content_notification_is_running_as_client,
-									ipAddress), pendingIntent, true, false).setSmallIcon(
-								R.mipmap.ic_notification)
-								.build());
-						break;
-
 					case CopyPasteService.ROLE_SERVER:
 						NotificationManagerCompat.from(CopyPasteApplication.this)
 							.notify(NOTIFICATION_ID, buildNotification(

@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -40,6 +42,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -262,15 +265,14 @@ public class CopyPasteService extends Service {
 	}
 
 	public static boolean isLocalNetworkAvailable(@NonNull Context context) {
-//		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
-//			Context.CONNECTIVITY_SERVICE);
-//
-//		NetworkInfo info = cm.getActiveNetworkInfo();
-//
-//		return info != null && Arrays.asList(ConnectivityManager.TYPE_WIFI,
-//			ConnectivityManager.TYPE_ETHERNET)
-//			.contains(info.getType());
-		return true;
+		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
+			Context.CONNECTIVITY_SERVICE);
+
+		NetworkInfo info = cm.getActiveNetworkInfo();
+
+		return info != null && Arrays.asList(ConnectivityManager.TYPE_WIFI,
+			ConnectivityManager.TYPE_ETHERNET)
+			.contains(info.getType());
 	}
 
 
@@ -347,6 +349,16 @@ public class CopyPasteService extends Service {
 			((ClipboardManager) getSystemService(
 				CLIPBOARD_SERVICE)).removePrimaryClipChangedListener(this);
 
+			if (remote) {
+				Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null, CopyPasteService.this,
+					CopyPasteService.class);
+				{
+					broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_ERROR);
+				}
+				LocalBroadcastManager.getInstance(CopyPasteService.this)
+					.sendBroadcast(broadcast);
+				setRunningAction(CopyPasteService.this, null);
+			}
 			connectionThread = null;
 		}
 
@@ -419,7 +431,6 @@ public class CopyPasteService extends Service {
 							Uri.parse("ws://" + data.host + ":" + data.port));
 
 						executor.execute(client);
-						setRunningAction(this, intent.getAction());
 
 						Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
 							CopyPasteService.this, CopyPasteService.class);
@@ -446,10 +457,11 @@ public class CopyPasteService extends Service {
 				}
 				LocalBroadcastManager.getInstance(CopyPasteService.this)
 					.sendBroadcast(broadcast);
-				setRunningAction(this, null);
 			}
 		});
-		return START_REDELIVER_INTENT;
+		Log.d(TAG, "onStartClient");
+
+		return START_NOT_STICKY;
 	}
 
 
@@ -822,6 +834,8 @@ public class CopyPasteService extends Service {
 		catch (IOException e) {
 			e.printStackTrace();
 		}
+		Log.d(TAG, "onStartClient");
+
 		return START_STICKY;
 	}
 
@@ -866,16 +880,18 @@ public class CopyPasteService extends Service {
 	@Override
 	public void onCreate() {
 		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip();
+
+		Log.d(TAG, "onCreate");
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		String action, actionCurrent = getRunningAction(this);
 
+		Log.d(TAG, String.format("onStartCommand: with %s", actionCurrent));
+
 		if (intent != null) {
 			action = intent.getAction();
-
-			setRunningAction(this, action);
 		}
 		else {
 			action = actionCurrent;
