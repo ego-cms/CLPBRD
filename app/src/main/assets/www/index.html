@@ -146,10 +146,12 @@
     function onWindowSizeChanged() {
         $("#content").css("margin-top", Math.max(($('body').height() - $("#content").height()) / 2, topMarginMin) + "px");
     }
-    onWindowSizeChanged();
-
     $(window).resize(onWindowSizeChanged);
-    $("#entryClipboardText").css("min-height", ($('body').height() * 0.4) + "px");
+    $(window).load(function () {
+        $("#entryClipboardText").css("min-height", ($('body').height() * 0.4) + "px");
+
+        onWindowSizeChanged();
+    });
 </script>
 </body>
 </html>
