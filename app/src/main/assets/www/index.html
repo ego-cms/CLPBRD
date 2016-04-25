@@ -15,7 +15,7 @@
         color: @color/webPaletteWhite;
         overflow: auto;
         height: 100%;
-        margin:0
+        margin:0;
         }
         a {
         color: @color/webPaletteWhite;
@@ -30,7 +30,7 @@
         }
         #entryClipboardText {
         width: 100%;
-        height: 100%;
+        min-height: 40%;
         margin: auto;
         resize: none;
         box-sizing: border-box;
@@ -62,7 +62,7 @@
         }
     </style>
 </head>
-<body>
+<body style="display: none">
 <div style="width: 60%; min-width: 480pt; margin: 0 auto">
     <div id="content" style="display: block; margin-top: 10pt">
         <div style="text-align: center">
@@ -138,7 +138,6 @@
 				socket.send($("#entryClipboardText").val());
 			});
 		});
-
 </script>
 <script type="text/javascript">
     var topMarginMin = $("#content").css("margin-top").replace("px", "");
@@ -148,6 +147,7 @@
     }
     $(window).resize(onWindowSizeChanged);
     $(window).load(function () {
+        $('body').fadeIn(650);
         $("#entryClipboardText").css("min-height", ($('body').height() * 0.4) + "px");
 
         onWindowSizeChanged();
