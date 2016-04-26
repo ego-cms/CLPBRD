@@ -850,12 +850,6 @@ public class CopyPasteService extends Service {
 
 	private void stopRunningActions(String action) {
 		switch (action) {
-			case ACTION_START_CLIENT:
-				if (client != null) {
-					client.close();
-					client = null;
-				}
-				break;
 			case ACTION_START_SERVER:
 				if (server != null) {
 					if (!clipboardServerLazy.isEmpty()) {
@@ -867,6 +861,13 @@ public class CopyPasteService extends Service {
 					}
 					server.stop();
 					server = null;
+				}
+				break;
+			case ACTION_START_CLIENT:
+			default:
+				if (client != null) {
+					client.close();
+					client = null;
 				}
 				break;
 		}
