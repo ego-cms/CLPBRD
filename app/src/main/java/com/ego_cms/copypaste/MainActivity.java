@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
+import android.support.graphics.drawable.VectorDrawableCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
@@ -255,7 +256,7 @@ public class MainActivity extends ActivityBaseCompat {
 	private void displayServiceEnabledState() {
 		if (hasCamera()) {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_forward);
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_forward, getTheme()));
 
 			buttonScanQR.setVisibility(View.INVISIBLE);
 			buttonScanQR.setX(scanQRButtonOrigin.x);
@@ -263,7 +264,7 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 		else {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_no_camera_forward);
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_no_camera_forward, getTheme()));
 		}
 		groupServiceControls.setX(screenCenter.x - toggleServiceButtonCenter.x);
 		groupNetworkAddress.setVisibility(View.VISIBLE);
@@ -305,7 +306,7 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 		else {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_forward);
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_forward, getTheme()));
 		}
 		groupServiceControls.postDelayed(() -> {
 			ViewCompat.animate(groupServiceControls)
@@ -334,7 +335,7 @@ public class MainActivity extends ActivityBaseCompat {
 	private void displayServiceDisabledState() {
 		if (hasCamera()) {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_backward);
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_backward, getTheme()));
 
 			buttonScanQR.setVisibility(View.VISIBLE);
 			buttonScanQR.setX(scanQRButtonOrigin.x);
@@ -342,7 +343,7 @@ public class MainActivity extends ActivityBaseCompat {
 		}
 		else {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-				R.drawable.bg_button_group_no_camera_backward);
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_no_camera_backward, getTheme()));
 		}
 		groupServiceControls.setX(groupServiceControlsOrigin.x);
 		groupNetworkAddress.setVisibility(View.INVISIBLE);
@@ -421,7 +422,7 @@ public class MainActivity extends ActivityBaseCompat {
 			drawable, null);
 
 		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-			R.drawable.bg_button_group_backward);
+			VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_backward, getTheme()));
 
 		if (!hasCamera()) {
 			buttonScanQR.setVisibility(View.GONE);
@@ -496,6 +497,8 @@ public class MainActivity extends ActivityBaseCompat {
 
 	@Override
 	protected void onDestroy() {
+		CopyPasteService.unregisterCallback(COPY_PASTE_SERVICE_CALLBACK);
+
 		ButterKnife.unbind(this);
 		super.onDestroy();
 	}
@@ -529,7 +532,7 @@ public class MainActivity extends ActivityBaseCompat {
 								public void onStart(@CopyPasteService.RoleDef int role,
 									String ipAddress) {
 									textNetworkAddress.setText(
-										getNetworkAddressFormatted(uri.getAuthority()));
+										getNetworkAddressFormatted(ipAddress));
 
 									textNetworkAddressHint.setText(
 										R.string.label_service_client_hint);

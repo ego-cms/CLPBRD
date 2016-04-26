@@ -1,5 +1,6 @@
 package com.ego_cms.copypaste;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.app.PendingIntent;
 import android.content.ClipData;
@@ -61,6 +62,7 @@ public class CopyPasteApplication extends Application {
 				PendingIntent.FLAG_UPDATE_CURRENT);
 
 			@Override
+			@SuppressLint("SwitchIntDef")
 			public void onStart(@CopyPasteService.RoleDef int role, String ipAddress) {
 				switch (role) {
 					case CopyPasteService.ROLE_SERVER:

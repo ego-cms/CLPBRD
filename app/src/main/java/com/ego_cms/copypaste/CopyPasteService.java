@@ -337,6 +337,25 @@ public class CopyPasteService extends Service {
 		public void onOpen(ServerHandshake handshakedata) {
 			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
 				.addPrimaryClipChangedListener(this);
+
+			isRunning = true;
+			Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
+				CopyPasteService.this, CopyPasteService.class);
+			{
+				String ipAddress = getURI().getAuthority();
+				{
+					int portSegmentStartIndex = ipAddress.indexOf(':');
+
+					if (portSegmentStartIndex > 0) {
+						ipAddress = ipAddress.substring(0, portSegmentStartIndex);
+					}
+				}
+				broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
+				broadcast.putExtra(EXTRA_IP_ADDRESS, ipAddress);
+				broadcast.putExtra(EXTRA_ROLE, ROLE_CLIENT);
+			}
+			LocalBroadcastManager.getInstance(CopyPasteService.this)
+				.sendBroadcast(broadcast);
 		}
 
 		@Override
@@ -431,16 +450,6 @@ public class CopyPasteService extends Service {
 							Uri.parse("ws://" + data.host + ":" + data.port));
 
 						executor.execute(client);
-
-						Intent broadcast = new Intent(ACTION_SERVICE_CALLBACK, null,
-							CopyPasteService.this, CopyPasteService.class);
-						{
-							broadcast.putExtra(EXTRA_CALLBACK_SIGNAL, CALLBACK_SIGNAL_ON_START);
-							broadcast.putExtra(EXTRA_IP_ADDRESS, data.host);
-							broadcast.putExtra(EXTRA_ROLE, ROLE_CLIENT);
-						}
-						LocalBroadcastManager.getInstance(CopyPasteService.this)
-							.sendBroadcast(broadcast);
 					});
 				}
 				finally {
