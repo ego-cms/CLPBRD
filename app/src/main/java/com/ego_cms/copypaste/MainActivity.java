@@ -83,18 +83,26 @@ public class MainActivity extends ActivityBaseCompat {
 			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 		}
 
+		private Runnable stopServiceTask;
+
 		@Override
 		public void onReceive(Context context, Intent intent) {
+			if (stopServiceTask != null) {
+				getMainHandler().removeCallbacks(stopServiceTask);
+			}
 			if (!CopyPasteService.isLocalNetworkAvailable(context)) {
-				CopyPasteService.stop(context);
+				stopServiceTask = () -> {
+					CopyPasteService.stop(context);
 
-				new AlertDialog.Builder(MainActivity.this).setTitle(
-					R.string.title_dialog_error_network_unreachable)
-					.setMessage(R.string.message_dialog_error_network_unreachable)
-					.setPositiveButton(R.string.button_positive_generic, null)
-					.setOnDismissListener(dialog -> transitionServiceDisabledState(
-						MainActivity.this::transitionMagicHintIn))
-					.show();
+					new AlertDialog.Builder(MainActivity.this).setTitle(
+						R.string.title_dialog_error_network_unreachable)
+						.setMessage(R.string.message_dialog_error_network_unreachable)
+						.setPositiveButton(R.string.button_positive_generic, null)
+						.setOnDismissListener(dialog -> transitionServiceDisabledState(
+							MainActivity.this::transitionMagicHintIn))
+						.show();
+				};
+				getMainHandler().postDelayed(stopServiceTask, 2048);
 			}
 		}
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<dimen name="text_size_address">21dp</dimen>
+	<dimen name="text_size_address_hint">11dp</dimen>
+
+</resources>
