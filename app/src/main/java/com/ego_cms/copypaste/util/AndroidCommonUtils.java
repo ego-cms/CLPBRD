@@ -20,7 +20,7 @@ import android.view.ViewTreeObserver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -44,7 +44,7 @@ public final class AndroidCommonUtils {
 		Context context) {
 		Map<String, StringInterpolator.Rule> rules = new HashMap<>();
 		{
-			DecimalFormat decimalFormat = new DecimalFormat("0.###");
+			NumberFormat decimalFormat = NumberFormat.getInstance(Locale.US);
 			rules.put("color", new AndroidResourcesInterpolatorRule(context) {
 				@Override
 				protected String getResourceValueText(int resourceId, String type) {
@@ -55,8 +55,8 @@ public final class AndroidCommonUtils {
 					final int b = Color.blue(color);
 					final int a = Color.alpha(color);
 
-					return String.format(Locale.US, "rgba(%d, %d, %d, %s)", r, g, b,
-						decimalFormat.format(a / 255.f));
+					return String.format(Locale.US, "rgba(%d, %d, %d, %1.3f)",
+						r, g, b, Math.min(a / 255.f, 1));
 				}
 			});
 			rules.put("string", new AndroidResourcesInterpolatorRule(context) {
