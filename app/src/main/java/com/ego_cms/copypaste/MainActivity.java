@@ -98,22 +98,33 @@ public class MainActivity extends ActivityBaseCompat {
 			}
 		}
 
+
+		private boolean isStarted;
+
 		@Override
 		public void onStart(@CopyPasteService.RoleDef int role, String ipAddress) {
 			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
+			isStarted = true;
 		}
 
 		@Override
 		public void onStop() {
 			CopyPasteService.unregisterCallback(this);
 			unregisterReceiver(this);
+
+			isStarted = false;
 		}
 
 		@Override
 		public void onError() {
 			CopyPasteService.unregisterCallback(this);
-			unregisterReceiver(this);
 
+			if (isStarted) {
+				unregisterReceiver(this);
+				
+				isStarted = false;
+			}
 			new AlertDialog.Builder(MainActivity.this).setTitle(
 				R.string.title_dialog_error_connection)
 				.setMessage(R.string.message_dialog_error_network_unreachable)
