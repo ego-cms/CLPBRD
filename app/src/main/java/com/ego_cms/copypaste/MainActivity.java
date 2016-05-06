@@ -120,10 +120,12 @@ public class MainActivity extends ActivityBaseCompat {
 
 		@Override
 		public void onStop() {
-			CopyPasteService.unregisterCallback(this);
-			unregisterReceiver(this);
+			if (isStarted) {
+				CopyPasteService.unregisterCallback(this);
+				unregisterReceiver(this);
 
-			isStarted = false;
+				isStarted = false;
+			}
 		}
 
 		@Override
@@ -132,7 +134,7 @@ public class MainActivity extends ActivityBaseCompat {
 
 			if (isStarted) {
 				unregisterReceiver(this);
-				
+
 				isStarted = false;
 			}
 			new AlertDialog.Builder(MainActivity.this).setTitle(
@@ -547,7 +549,7 @@ public class MainActivity extends ActivityBaseCompat {
 
 	@Override
 	protected void onDestroy() {
-		CopyPasteService.unregisterCallback(COPY_PASTE_SERVICE_CALLBACK);
+		COPY_PASTE_SERVICE_CALLBACK.onStop();
 
 		ButterKnife.unbind(this);
 		super.onDestroy();
