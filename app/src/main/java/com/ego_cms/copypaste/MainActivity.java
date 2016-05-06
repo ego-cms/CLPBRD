@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -204,9 +205,26 @@ public class MainActivity extends ActivityBaseCompat {
 			Uri.parse(getString(R.string.ego_cms_contact_url))));
 	}
 
+
+	private final Rect buttonShowQRHitRect = new Rect();
+
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_DOWN:
+				if (buttonShowQRHitRect.contains((int)event.getX(), (int)event.getY())) {
+					return true;
+				}
+				break;
 
+			case MotionEvent.ACTION_UP:
+				if (buttonShowQRHitRect.contains((int)event.getX(), (int)event.getY())) {
+					buttonShowQR.performClick();
+
+					return true;
+				}
+				break;
+		}
 		return super.onTouchEvent(event);
 	}
 
@@ -491,6 +509,13 @@ public class MainActivity extends ActivityBaseCompat {
 			}
 			displayServiceDisabledState();
 		}
+		int buttonShowQRLocation[] = new int[2];
+		int inset = -Math.round(24 * getResources().getDisplayMetrics().density);
+
+		buttonShowQR.getLocationInWindow(buttonShowQRLocation);
+		buttonShowQR.getHitRect(buttonShowQRHitRect);
+		buttonShowQRHitRect.offset(buttonShowQRLocation[0], buttonShowQRLocation[1]);
+		buttonShowQRHitRect.inset(inset, inset);
 	}
 
 	@Override
