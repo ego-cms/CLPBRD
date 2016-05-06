@@ -77,7 +77,7 @@
         </div>
         <div style="position:relative; bottom: 10pt; top: 0; text-align: center;">
             <div style="margin: 15pt; margin-top: 30pt">
-                <div id="buttonSend" class="floatingButton"
+                <div id="buttonSend" class="floatingButton" title="Ctrl+Enter"
                      style="display: inline-block; position: relative; margin: 0 auto; width: 52pt; height: 52pt">
                     <svg width="52pt" height="52pt">
                         <circle cx="26pt" cy="26pt" r="26pt" fill="#4fc80d"></circle>
@@ -134,6 +134,12 @@
 				$("#labelError").show();
 			};
 
+            $("#entryClipboardText").keydown(function (event) {
+                if (event.ctrlKey && event.keyCode == 13) {
+                    socket.send($("#entryClipboardText").val());
+                }
+                return true;
+            });
 			$("#buttonSend").click(function() {
 				socket.send($("#entryClipboardText").val());
 			});

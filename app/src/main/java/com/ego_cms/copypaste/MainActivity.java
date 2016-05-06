@@ -21,6 +21,7 @@ import android.support.v4.view.ViewCompat;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AlertDialog;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -203,6 +204,11 @@ public class MainActivity extends ActivityBaseCompat {
 			Uri.parse(getString(R.string.ego_cms_contact_url))));
 	}
 
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+
+		return super.onTouchEvent(event);
+	}
 
 	private boolean hasCamera() {
 		return getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
