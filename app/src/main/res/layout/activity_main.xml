@@ -48,7 +48,7 @@
 		android:layout_alignParentEnd="true"
 		android:layout_alignParentRight="true"
 		android:layout_below="@id/__view_anchor"
-		android:layout_marginTop="-80dp"
+		android:layout_marginTop="@dimen/margin_top_group_service_controls"
 		android:layout_marginRight="5dp"
 		android:layout_marginEnd="5dp"
 
@@ -88,11 +88,11 @@
 
 	<TextView
 		android:id="@+id/__text_magic"
-		fontPath="fonts/KaushanScript-Regular.ttf"
+		fontPath="@string/typeface.name.magic_button"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_alignBottom="@id/__view_anchor"
-		android:layout_marginBottom="12dp"
+		android:layout_marginBottom="@dimen/margin_bottom_magic_hint_text"
 		android:layout_marginLeft="@dimen/gap_size_default"
 		android:layout_marginStart="@dimen/gap_size_default"
 		android:lines="2"
@@ -109,7 +109,7 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_below="@id/__text_magic"
-		android:layout_marginTop="-32dp"
+		android:layout_marginTop="@dimen/margin_top_magic_hint_arrow"
 		android:layout_marginRight="@dimen/gap_size_default"
 		android:layout_marginEnd="@dimen/gap_size_default"
 		android:layout_toLeftOf="@id/__view_anchor"
@@ -179,6 +179,7 @@
 		android:layout_below="@id/group_service_controls"
 		android:layout_centerHorizontal="true"
 		android:layout_marginTop="@dimen/gap_size_three_halves"
+		android:gravity="center"
 		android:text="@string/label_service_qr_feature_hint"/>
 
 	<TextView
