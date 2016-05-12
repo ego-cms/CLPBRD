@@ -10,10 +10,13 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.support.graphics.drawable.VectorDrawableCompat;
@@ -319,11 +322,9 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 
-	private AnimatedVectorDrawableCompat enabledStateVectorDrawable;
+	private Drawable enabledStateVectorDrawable;
 
 	private void transitionServiceEnabledState() {
-		AnimatedVectorDrawableCompat backgroundAnimated;
-
 		if (hasCamera()) {
 			ViewCompat.animate(buttonScanQR)
 				.alpha(0)
@@ -332,22 +333,22 @@ public class MainActivity extends ActivityBaseCompat {
 				.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
 
 			if (enabledStateVectorDrawable == null) {
-				enabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+				enabledStateVectorDrawable = getAnimatedVectorDrawable(this,
 					R.drawable.bg_button_group_animated_forward);
 			}
-			backgroundAnimated = enabledStateVectorDrawable;
 		}
 		else {
 			if (enabledStateVectorDrawable == null) {
-				enabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+				enabledStateVectorDrawable = getAnimatedVectorDrawable(this,
 					R.drawable.bg_button_group_animated_no_camera_forward);
 			}
-			backgroundAnimated = enabledStateVectorDrawable;
 		}
-		if (backgroundAnimated != null) {
-			backgroundAnimated.stop();
-			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, backgroundAnimated);
-			backgroundAnimated.start();
+		if (enabledStateVectorDrawable != null) {
+			Animatable animated = (Animatable)enabledStateVectorDrawable;
+
+			animated.stop();
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, enabledStateVectorDrawable);
+			animated.start();
 		}
 		else {
 			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
@@ -399,15 +400,13 @@ public class MainActivity extends ActivityBaseCompat {
 	}
 
 
-	private AnimatedVectorDrawableCompat disabledStateVectorDrawable;
+	private Drawable disabledStateVectorDrawable;
 
 	private void transitionServiceDisabledState(Runnable onComplete) {
 		ViewCompat.animate(groupServiceControls)
 			.setInterpolator(new AccelerateDecelerateInterpolator())
 			.x(groupServiceControlsOrigin.x)
 			.withEndAction(() -> {
-				AnimatedVectorDrawableCompat backgroundAnimated;
-
 				if (hasCamera()) {
 					buttonScanQR.setAlpha(0);
 					buttonScanQR.setVisibility(View.VISIBLE);
@@ -417,23 +416,22 @@ public class MainActivity extends ActivityBaseCompat {
 						.y(scanQRButtonOrigin.y);
 
 					if (disabledStateVectorDrawable == null) {
-						disabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+						disabledStateVectorDrawable = getAnimatedVectorDrawable(this,
 							R.drawable.bg_button_group_animated_backward);
 					}
-					backgroundAnimated = disabledStateVectorDrawable;
 				}
 				else {
 					if (disabledStateVectorDrawable == null) {
-						disabledStateVectorDrawable = AnimatedVectorDrawableCompat.create(this,
+						disabledStateVectorDrawable = getAnimatedVectorDrawable(this,
 							R.drawable.bg_button_group_animated_no_camera_backward);
 					}
-					backgroundAnimated = disabledStateVectorDrawable;
 				}
-				if (backgroundAnimated != null) {
-					backgroundAnimated.stop();
-					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
-						backgroundAnimated);
-					backgroundAnimated.start();
+				if (disabledStateVectorDrawable != null) {
+					Animatable animated = (Animatable)disabledStateVectorDrawable;
+
+					animated.stop();
+					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, disabledStateVectorDrawable);
+					animated.start();
 				}
 				else {
 					groupServiceControls.postDelayed(
@@ -657,5 +655,15 @@ public class MainActivity extends ActivityBaseCompat {
 	@NonNull
 	public String getNetworkAddressFormatted(String ipAddress) {
 		return String.format(Locale.US, "http://%s:%d", ipAddress, BuildConfig.SERVER_PORT);
+	}
+
+
+	private static Drawable getAnimatedVectorDrawable(@NonNull Context context, @DrawableRes int drawableResId) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+			return AnimatedVectorDrawableCompat.create(context, drawableResId);
+		}
+		else {
+			return AndroidCommonUtils.getDrawableFrom(context, drawableResId);
+		}
 	}
 }
