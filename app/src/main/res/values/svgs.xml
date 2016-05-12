@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-	<string name="svg_bg_button_group_expanded">M355,0
+	<string name="svg_bg_button_group_expanded" translatable="false">M355,0
 c-149.867,0,-272,115.34-285.006,261.987
 c-7.427,83.74-10.023,143.714-17.296,180.188
 c-6.448,33.317-20.448,76.317-39.618,125.141
@@ -15,7 +15,7 @@ c0,-157.953-128.047,-286-286,-286
 z
 	</string>
 
-	<string name="svg_bg_button_group_collapsed">M355,0
+	<string name="svg_bg_button_group_collapsed" translatable="false">M355,0
 c-149.867,0,-272.81,115.271,-285.006,261.987
 c-0.658,7.917-0.994,15.926-0.994,24.013
 c0,32.868,10.063,84,23.256,113.153
