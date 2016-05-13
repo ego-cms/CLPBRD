@@ -1,16 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="application_name">CopyPaste</string>
+	<string name="application_name" translatable="false">CLPBRD</string>
 
-	<string name="label_clip_data_section">Current clipboard:</string>
-	<string name="label_clip_item_coerced">(coerced)</string>
-	<string name="label_clip_item_type" formatted="true">Item type: %s</string>
-	<string name="label_clip_item_type_html">HTML</string>
-	<string name="label_clip_item_type_intent">Intent</string>
-	<string name="label_clip_item_type_text">Text</string>
-	<string name="label_clip_item_type_uri">URI</string>
-	<string name="label_clip_label">Label:</string>
-	<string name="label_clip_label_value_unknown">&lt;UNSPECIFIED&gt;</string>
-	<string name="label_clip_mime_count" formatted="true">MIME (%d):</string>
+	<!-- Home screen -->
+	<string name="button_service_toggle_normal">TURN\nIT ON</string>
+	<string name="button_service_toggle_activated">TURN\nIT OFF</string>
+	<string name="button_positive_generic" translatable="false">OK</string>
+
+	<string name="content_description_scan_qr">Scan QR code to connect with peer.</string>
+	<string name="content_notification_is_running_as_service" formatted="true">Your IP address is: %s</string>
+	<string name="content_notification_is_running_as_client" formatted="true">You\'re connected to: %s</string>
+
 	<string name="label_clip_updated">Clipboard Text Received!</string>
-	<string name="label_service">Enable service</string>
+	<string name="label_magic">Magic\nbutton</string>
+	<string name="label_credits">Made with love by</string>
+	<string name="label_service_browser_hint">Connect to this address in your browser</string>
+	<string name="label_service_client_hint">You\'re connected to this address</string>
+	<string name="label_service_hint">Send clipboard between your phone,\ndesktop or another phone.\n\nTurn service on and just copy and paste.</string>
+	<string name="label_service_qr_code_hint">Scan this code in %s App running on\nanother device to get connected</string>
+	<string name="label_service_qr_feature_hint">OR Scan QR code\non another device</string>
+
+	<string name="message_dialog_error_bad_qr" formatted="true">QR code You have just scanned does not contain %1$s connection information.\n\nPlease, scan a QR code in %1$s App that is running on another device to get connected.</string>
+	<string name="title_dialog_error_bad_qr">Sorry, this didn\'t work</string>
+
+	<string name="message_dialog_error_connection">%s host is unreachable. Please, check your network connection and try again.</string>
+	<string name="message_dialog_error_network_unreachable">Please, check your connection status and try again!</string>
+	<string name="title_dialog_error_network_unreachable">Network unreachable</string>
+	<string name="title_dialog_error_connection">Not connected</string>
+	<string name="title_dialog_progress_connecting">Connecting…</string>
+	<string name="title_notification_is_running_as_service" formatted="true">%s is running as service!</string>
+	<string name="title_notification_is_running_as_client" formatted="true">%s is running as client!</string>
+
+	<string name="web_page_connection_error_format" formatted="true">Lost connection to: %s&lt;br&gt;Try to relaunch service on device then refresh a page.</string>
+	<string name="web_page_button_send" translatable="false">SEND</string>
+	<string name="web_page_subtitle">Send clipboard between your phone and browser.&lt;br&gt;Just copy and paste.</string>
+	<string name="web_page_credits">@string/label_credits</string>
+
 </resources>

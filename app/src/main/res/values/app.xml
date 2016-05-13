@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<string name="typeface.name.magic_button">fonts/KaushanScript-Regular.ttf</string>
+
+	<string name="ego_cms.contact.url">http://ego-cms.com/</string>
+
+</resources>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<!-- Home screen -->
+	<string name="button_service_toggle_normal">ВКЛ.</string>
+	<string name="button_service_toggle_activated">ВЫКЛ.</string>
+
+	<string name="content_description_scan_qr">Сканируйте QR для соединения с узлом.</string>
+	<string name="content_notification_is_running_as_service" formatted="true">Ваш IP адрес: %s</string>
+	<string name="content_notification_is_running_as_client" formatted="true">Вы соединены с: %s</string>
+
+	<string name="label_clip_updated">Содержимое буфера обмена обновлено!</string>
+	<string name="label_magic">Волшебная\nкнопка</string>
+	<string name="label_credits">Сделано с любовью в</string>
+	<string name="label_service_browser_hint">Используйте этот адрес в браузере чтобы соединиться</string>
+	<string name="label_service_client_hint">Вы соединены с устройством по этому адресу</string>
+	<string name="label_service_hint">Отправляйте содержимое буфера обмена Вашего устройства на ПК или другое устройство просто включив сервис.</string>
+	<string name="label_service_qr_code_hint">Для того чтобы соединиться, сканируйте этот код\nв %s, запущенном на другом устройстве</string>
+	<string name="label_service_qr_feature_hint">ИЛИ сканируйте QR код\nна другом устройстве</string>
+
+	<string name="message_dialog_error_bad_qr" formatted="true">Вы отсканировали QR код, который не содержит информации о соединении в %1$s.\n\nПожалуйста, отсканируйте QR код в %1$s, который запущен на другом устройстве для того, чтобы соединиться.</string>
+	<string name="title_dialog_error_bad_qr">Извините, не сработало</string>
+
+	<string name="message_dialog_error_connection">%s узел недоступен. Пожалуйста, проверьте свое соединение с сетью и попробуйте снова.</string>
+	<string name="message_dialog_error_network_unreachable">Пожалуйста, проверьте свое соединение с сетью и попробуйте снова!</string>
+	<string name="title_dialog_error_network_unreachable">Сетевое подключение недоступно</string>
+	<string name="title_dialog_error_connection">Нет соединения</string>
+	<string name="title_dialog_progress_connecting">Соединение…</string>
+	<string name="title_notification_is_running_as_service" formatted="true">%s запущен как сервис!</string>
+	<string name="title_notification_is_running_as_client" formatted="true">%s запущен как клиент!</string>
+	<string name="web_page_connection_error_format" formatted="true">Потеряно соединение с: %s&lt;br&gt;Попробуйте перезапустить сервисе на устройстве, затем обновите страницу.</string>
+	<string name="web_page_subtitle">Отправляйте содержимое буфера обмена Вашего смартфона в браузер просто копируя текст.</string>
+	<string name="web_page_credits">@string/label_credits</string>
+
+</resources>

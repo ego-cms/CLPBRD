@@ -1,177 +1,521 @@
 package com.ego_cms.copypaste;
 
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.SwitchCompat;
-import android.util.Log;
+import android.support.annotation.DrawableRes;
+import android.support.annotation.NonNull;
+import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
+import android.support.graphics.drawable.VectorDrawableCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
+import android.support.v4.view.ViewCompat;
+import android.support.v4.view.animation.LinearOutSlowInInterpolator;
+import android.support.v4.widget.TextViewCompat;
+import android.support.v7.app.AlertDialog;
+import android.view.MotionEvent;
 import android.view.View;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
+import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 
-import com.ego_cms.copypaste.util.CommonUtils;
+import com.ego_cms.copypaste.util.AndroidCommonUtils;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import solid.functions.SolidFunc1;
-import solid.stream.Stream;
+import butterknife.OnClick;
 
-public class MainActivity extends AppCompatActivity
-	implements ClipboardManager.OnPrimaryClipChangedListener {
+public class MainActivity extends ActivityBaseCompat {
 
-	private static final String TAG = "MainActivity";
+	@Bind(R.id.__view_anchor)
+	View viewAnchor;
+
+	@Bind(R.id.group_service_controls)
+	View groupServiceControls;
+
+	@Bind(R.id.button_service_toggle)
+	TextView buttonServiceToggle;
+
+	@Bind(R.id.button_scan_qr)
+	View buttonScanQR;
+
+	@Bind(R.id.__text_magic)
+	View magicText;
+
+	@Bind(R.id.__image_magic)
+	View magicImage;
+
+	@Bind(R.id.group_network_address)
+	View groupNetworkAddress;
+
+	@Bind(R.id.button_show_qr)
+	View buttonShowQR;
+
+	@Bind(R.id.text_network_address)
+	TextView textNetworkAddress;
+
+	@Bind(R.id.text_network_address_hint)
+	TextView textNetworkAddressHint;
+
+	@Bind(R.id.text_qr_feature_hint)
+	TextView textQRFeatureHint;
+
+	@Bind(R.id.button_contact_us)
+	TextView buttonContactUs;
 
 
-	@Bind(R.id.switch_service)
-	SwitchCompat switchService;
+	private final class CopyPasteServiceCallback extends BroadcastReceiver
+		implements CopyPasteService.Callback {
 
-	@Bind(R.id.text_server_address)
-	TextView textServerAddress;
-
-	@Bind(R.id.text_clip_label)
-	TextView textClipLabel;
-
-	@Bind(R.id.text_clip_mime_types_count)
-	TextView textClipMimeTypesCount;
-
-	@Bind(R.id.text_clip_mime_types)
-	TextView textClipMimeTypes;
-
-	@Bind(R.id.list_clip_items)
-	ListView listClipItems;
-
-
-	private void updateClipDataDisplay() {
-		ClipData clipData = ((ClipboardManager) getSystemService(
-			CLIPBOARD_SERVICE)).getPrimaryClip();
-		ClipDescription description = clipData.getDescription();
-
-		StringBuilder sb = new StringBuilder();
-
-		for (int i = 0, imax = description.getMimeTypeCount(); i < imax; ++i) {
-			sb.append(description.getMimeType(i))
-				.append(",\n");
+		public void restoreCallback() {
+			CopyPasteService.registerCallback(this);
+			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 		}
-		int length = sb.length();
 
-		if (length > 2) {
-			sb.delete(length - 2, length);
+		private Runnable stopServiceTask;
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			if (stopServiceTask != null) {
+				getMainHandler().removeCallbacks(stopServiceTask);
+			}
+			if (!CopyPasteService.isLocalNetworkAvailable(context)) {
+				stopServiceTask = () -> {
+					CopyPasteService.stop(context);
+
+					new AlertDialog.Builder(MainActivity.this).setTitle(
+						R.string.title_dialog_error_network_unreachable)
+						.setMessage(R.string.message_dialog_error_network_unreachable)
+						.setPositiveButton(R.string.button_positive_generic, null)
+						.setOnDismissListener(dialog -> transitionServiceDisabledState(
+							MainActivity.this::transitionMagicHintIn))
+						.show();
+				};
+				getMainHandler().postDelayed(stopServiceTask, 2048);
+			}
 		}
-		textClipLabel.setText(description.getLabel());
-		textClipMimeTypesCount.setText(
-			getString(R.string.label_clip_mime_count, description.getMimeTypeCount()));
-		textClipMimeTypes.setText(sb.toString());
 
-		ListAdapter adapter;
-		{
-			final String source[] = new String[]{
-				"content",
-				"type"
-			};
-			final int target[] = new int[]{
-				android.R.id.text1,
-				android.R.id.text2
-			};
-			Iterable<ClipData.Item> clipItems = () -> new Iterator<ClipData.Item>() {
 
-				int index;
+		private boolean isStarted;
 
-				@Override
-				public boolean hasNext() {
-					return index < clipData.getItemCount();
-				}
+		@Override
+		public void onStart(@CopyPasteService.RoleDef int role, String ipAddress) {
+			registerReceiver(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
-				@Override
-				public ClipData.Item next() {
-					return clipData.getItemAt(index++);
-				}
-
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
-				}
-			};
-			adapter = new SimpleAdapter(this, Stream.stream(clipItems)
-				.map((SolidFunc1<ClipData.Item, Map<String, ?>>) value -> {
-					Map<String, Object> result = new HashMap<>();
-					{
-						CharSequence content;
-
-						if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
-							content = value.coerceToStyledText(this);
-						}
-						else {
-							content = value.coerceToText(this);
-						}
-						result.put(source[0], content);
-
-						String type;
-						{
-							if (value.getUri() != null) {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_uri) + " " + getString(
-										R.string.label_clip_item_coerced));
-							}
-							else if (value.getIntent() != null) {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_intent) + " "
-										+ getString(R.string.label_clip_item_coerced));
-							}
-							else if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN
-								&& value.getHtmlText() != null) {
-
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_html) + " " + getString(
-										R.string.label_clip_item_coerced));
-							}
-							else {
-								type = getString(R.string.label_clip_item_type,
-									getString(R.string.label_clip_item_type_text));
-							}
-						}
-						result.put(source[1], type);
-					}
-					return result;
-				})
-				.toSolidList(), R.layout.item_clip_item, source, target);
+			isStarted = true;
 		}
-		listClipItems.setAdapter(adapter);
+
+		@Override
+		public void onStop() {
+			if (isStarted) {
+				CopyPasteService.unregisterCallback(this);
+				unregisterReceiver(this);
+
+				isStarted = false;
+			}
+		}
+
+		@Override
+		public void onError() {
+			CopyPasteService.unregisterCallback(this);
+
+			if (isStarted) {
+				unregisterReceiver(this);
+
+				isStarted = false;
+			}
+			new AlertDialog.Builder(MainActivity.this).setTitle(
+				R.string.title_dialog_error_connection)
+				.setMessage(R.string.message_dialog_error_network_unreachable)
+				.setPositiveButton(R.string.button_positive_generic, null)
+				.setOnDismissListener(dialog -> transitionServiceDisabledState(
+					MainActivity.this::transitionMagicHintIn))
+				.show();
+		}
+
+		@Override
+		public void onClipChanged(ClipData clipData) {
+			/* Nothing to do */
+		}
 	}
 
 
-	private static final String KEY_SERVICE_IS_RUNNING = TAG + ".keyServiceIsRunning";
+	private final CopyPasteServiceCallback COPY_PASTE_SERVICE_CALLBACK
+		= new CopyPasteServiceCallback();
 
-	private void initializeView() {
-		KeyValueStorage kvs = CopyPasteApplication.get(this)
-			.getCommonKeyValueStorage();
 
-		switchService.setChecked(
-			CommonUtils.toPrimitive(kvs.load(KEY_SERVICE_IS_RUNNING, Boolean.class), false));
-		switchService.setOnCheckedChangeListener((buttonView, isChecked) -> {
-			if (isChecked) {
-				CopyPasteService.start(this);
-				textServerAddress.setVisibility(View.VISIBLE);
+	@OnClick(R.id.button_service_toggle)
+	void onServiceToggleButtonClick() {
+		if (CopyPasteService.isRunning(this)) {
+			CopyPasteService.stop(this);
+			transitionServiceDisabledState(this::transitionMagicHintIn);
+		}
+		else {
+			if (CopyPasteService.isLocalNetworkAvailable(this)) {
+				textNetworkAddress.setText(
+					getNetworkAddressFormatted(CopyPasteService.getDeviceNetworkAddress()));
+				textNetworkAddressHint.setText(R.string.label_service_browser_hint);
+
+				CopyPasteService.registerCallback(COPY_PASTE_SERVICE_CALLBACK);
+				CopyPasteService.startServer(this);
+				transitionServiceEnabledState();
+				transitionMagicHintOut();
 			}
 			else {
-				CopyPasteService.stop(this);
-				textServerAddress.setVisibility(View.GONE);
+				new AlertDialog.Builder(MainActivity.this).setTitle(
+					R.string.title_dialog_error_network_unreachable)
+					.setMessage(R.string.message_dialog_error_network_unreachable)
+					.setPositiveButton(R.string.button_positive_generic, null)
+					.show();
 			}
-			kvs.store(KEY_SERVICE_IS_RUNNING, isChecked);
-		});
-		textServerAddress.setText(String.format(Locale.US, "http://%s:%d", CopyPasteService.getNetworkAddress(),
-			BuildConfig.SERVER_PORT));
+		}
+	}
 
-		updateClipDataDisplay();
+	@OnClick(R.id.button_scan_qr)
+	void onScanQRButtonClick() {
+		new IntentIntegrator(this) // preserve new line
+			.setBeepEnabled(true)
+			.setCaptureActivity(AddressScannerActivity.class)
+			.setOrientationLocked(true)
+			.setPrompt("")
+			.initiateScan(IntentIntegrator.QR_CODE_TYPES);
+	}
+
+	@OnClick(R.id.button_show_qr)
+	void onShowQRButtonClick() {
+		//noinspection ConstantConditions
+		AddressDisplayActivity.startAsync(this, // preserve new line
+			buttonShowQR, String.format("clpbrd://%s", CopyPasteService.getDeviceNetworkAddress()));
+	}
+
+	@OnClick(R.id.button_contact_us)
+	void onContactUsButtonClick() {
+		startActivity(new Intent(Intent.ACTION_VIEW, // preserve new line
+			Uri.parse(getString(R.string.ego_cms_contact_url))));
+	}
+
+
+	private final Rect buttonShowQRHitRect = new Rect();
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_DOWN:
+				if (buttonShowQRHitRect.contains((int)event.getX(), (int)event.getY())) {
+					return true;
+				}
+				break;
+
+			case MotionEvent.ACTION_UP:
+				if (buttonShowQRHitRect.contains((int)event.getX(), (int)event.getY())) {
+					buttonShowQR.performClick();
+
+					return true;
+				}
+				break;
+		}
+		return super.onTouchEvent(event);
+	}
+
+	private boolean hasCamera() {
+		return getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+	}
+
+
+	private PointF magicImageOrigin;
+
+	private void bringMagicHintIn() {
+		magicImage.setX(magicImageOrigin.x);
+		magicImage.setY(magicImageOrigin.y);
+		magicText.setVisibility(View.VISIBLE);
+		magicImage.setVisibility(View.VISIBLE);
+	}
+
+	private void transitionMagicHintIn() {
+		magicText.setAlpha(0);
+		magicText.setScaleX(3);
+		magicText.setScaleY(3);
+		magicText.setVisibility(View.VISIBLE);
+
+		magicImage.setX(magicImageOrigin.x);
+		magicImage.setY(magicImageOrigin.y);
+
+		Resources resources = getResources();
+		ViewCompat.animate(magicText)
+			.setDuration(resources.getInteger(android.R.integer.config_mediumAnimTime))
+			.alpha(1)
+			.scaleX(1)
+			.scaleY(1);
+
+		magicImage.setAlpha(0);
+		magicImage.setRotation(-30);
+		magicImage.setX(-magicImage.getWidth());
+		magicImage.setVisibility(View.VISIBLE);
+
+		ViewCompat.animate(magicImage)
+			.setDuration(resources.getInteger(android.R.integer.config_shortAnimTime))
+			.setStartDelay(resources.getInteger(android.R.integer.config_shortAnimTime) / 2)
+			.alpha(1)
+			.x(magicImageOrigin.x)
+			.rotation(0);
+	}
+
+	private void bringMagicHintOut() {
+		magicText.setVisibility(View.INVISIBLE);
+		magicImage.setVisibility(View.INVISIBLE);
+	}
+
+	private void transitionMagicHintOut() {
+		Resources resources = getResources();
+		ViewCompat.animate(magicText)
+			.alpha(0)
+			.withEndAction(() -> magicText.setVisibility(View.INVISIBLE));
+		ViewCompat.animate(magicImage)
+			.setDuration(resources.getInteger(android.R.integer.config_shortAnimTime))
+			.alpha(0)
+			.rotation(-30)
+			.x(magicImage.getX() - magicImage.getWidth() / 2)
+			.y(magicImage.getY() + magicImage.getHeight())
+			.withEndAction(() -> magicText.setVisibility(View.INVISIBLE));
+	}
+
+
+	private PointF screenCenter;
+	private PointF groupServiceControlsOrigin;
+	private PointF scanQRButtonOrigin;
+	private PointF toggleServiceButtonCenter;
+
+	private void displayServiceEnabledState() {
+		if (hasCamera()) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_forward, getTheme()));
+
+			buttonScanQR.setVisibility(View.INVISIBLE);
+			buttonScanQR.setX(scanQRButtonOrigin.x);
+			buttonScanQR.setY(scanQRButtonOrigin.y);
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_no_camera_forward, getTheme()));
+		}
+		groupServiceControls.setX(screenCenter.x - toggleServiceButtonCenter.x);
+		groupNetworkAddress.setVisibility(View.VISIBLE);
+		buttonServiceToggle.setText(R.string.button_service_toggle_activated);
+		buttonServiceToggle.setActivated(true);
+		textQRFeatureHint.setVisibility(View.INVISIBLE);
+	}
+
+
+	private Drawable enabledStateVectorDrawable;
+
+	private void transitionServiceEnabledState() {
+		if (hasCamera()) {
+			ViewCompat.animate(buttonScanQR)
+				.alpha(0)
+				.x(toggleServiceButtonCenter.x - buttonScanQR.getWidth() / 2.f)
+				.y(toggleServiceButtonCenter.y - buttonScanQR.getHeight() / 2.f)
+				.withEndAction(() -> buttonScanQR.setVisibility(View.INVISIBLE));
+
+			if (enabledStateVectorDrawable == null) {
+				enabledStateVectorDrawable = getAnimatedVectorDrawable(this,
+					R.drawable.bg_button_group_animated_forward);
+			}
+		}
+		else {
+			if (enabledStateVectorDrawable == null) {
+				enabledStateVectorDrawable = getAnimatedVectorDrawable(this,
+					R.drawable.bg_button_group_animated_no_camera_forward);
+			}
+		}
+		if (enabledStateVectorDrawable != null) {
+			Animatable animated = (Animatable)enabledStateVectorDrawable;
+
+			animated.stop();
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, enabledStateVectorDrawable);
+			animated.start();
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_forward, getTheme()));
+		}
+		groupServiceControls.postDelayed(() -> {
+			ViewCompat.animate(groupServiceControls)
+				.setInterpolator(new LinearOutSlowInInterpolator())
+				.x(screenCenter.x - toggleServiceButtonCenter.x)
+				.withEndAction(() -> buttonServiceToggle.setClickable(true));
+
+			buttonServiceToggle.setText(R.string.button_service_toggle_activated);
+		}, getResources().getInteger(android.R.integer.config_mediumAnimTime));
+
+		buttonServiceToggle.setActivated(true);
+		buttonServiceToggle.setClickable(false);
+
+		groupNetworkAddress.setAlpha(0);
+		groupNetworkAddress.setVisibility(View.VISIBLE);
+		ViewCompat.animate(groupNetworkAddress)
+			.alpha(1);
+
+		textQRFeatureHint.setAlpha(1);
+		textQRFeatureHint.setVisibility(View.VISIBLE);
+		ViewCompat.animate(textQRFeatureHint)
+			.withEndAction(() -> textQRFeatureHint.setVisibility(View.INVISIBLE))
+			.alpha(0);
+	}
+
+	private void displayServiceDisabledState() {
+		if (hasCamera()) {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_backward, getTheme()));
+
+			buttonScanQR.setVisibility(View.VISIBLE);
+			buttonScanQR.setX(scanQRButtonOrigin.x);
+			buttonScanQR.setY(scanQRButtonOrigin.y);
+		}
+		else {
+			AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+				VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_no_camera_backward, getTheme()));
+		}
+		groupServiceControls.setX(groupServiceControlsOrigin.x);
+		groupNetworkAddress.setVisibility(View.INVISIBLE);
+		buttonServiceToggle.setText(R.string.button_service_toggle_normal);
+		buttonServiceToggle.setActivated(false);
+		textQRFeatureHint.setVisibility(View.VISIBLE);
+		textQRFeatureHint.setAlpha(1);
+	}
+
+
+	private Drawable disabledStateVectorDrawable;
+
+	private void transitionServiceDisabledState(Runnable onComplete) {
+		ViewCompat.animate(groupServiceControls)
+			.setInterpolator(new AccelerateDecelerateInterpolator())
+			.x(groupServiceControlsOrigin.x)
+			.withEndAction(() -> {
+				if (hasCamera()) {
+					buttonScanQR.setAlpha(0);
+					buttonScanQR.setVisibility(View.VISIBLE);
+					ViewCompat.animate(buttonScanQR)
+						.alpha(1)
+						.x(scanQRButtonOrigin.x)
+						.y(scanQRButtonOrigin.y);
+
+					if (disabledStateVectorDrawable == null) {
+						disabledStateVectorDrawable = getAnimatedVectorDrawable(this,
+							R.drawable.bg_button_group_animated_backward);
+					}
+				}
+				else {
+					if (disabledStateVectorDrawable == null) {
+						disabledStateVectorDrawable = getAnimatedVectorDrawable(this,
+							R.drawable.bg_button_group_animated_no_camera_backward);
+					}
+				}
+				if (disabledStateVectorDrawable != null) {
+					Animatable animated = (Animatable)disabledStateVectorDrawable;
+
+					animated.stop();
+					AndroidCommonUtils.setBackgroundDrawable(groupServiceControls, disabledStateVectorDrawable);
+					animated.start();
+				}
+				else {
+					groupServiceControls.postDelayed(
+						() -> AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+							R.drawable.bg_button_group_backward),
+						getResources().getInteger(android.R.integer.config_shortAnimTime));
+				}
+				buttonServiceToggle.setText(R.string.button_service_toggle_normal);
+				buttonServiceToggle.setActivated(false);
+
+				ViewCompat.animate(groupNetworkAddress)
+					.alpha(0)
+					.withEndAction(() -> groupNetworkAddress.setVisibility(View.INVISIBLE));
+
+				textQRFeatureHint.setAlpha(0);
+				textQRFeatureHint.setVisibility(View.VISIBLE);
+				ViewCompat.animate(textQRFeatureHint)
+					.alpha(1);
+
+				onComplete.run();
+			});
+	}
+
+	private void initializeView(Runnable onComplete) {
+		Drawable drawable = DrawableCompat.wrap(
+			AndroidCommonUtils.getDrawableFrom(this, R.drawable.logo_authority))
+			.mutate();
+
+		DrawableCompat.setTint(drawable, buttonContactUs.getCurrentTextColor());
+		TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(buttonContactUs, null, null,
+			drawable, null);
+
+		AndroidCommonUtils.setBackgroundDrawable(groupServiceControls,
+			VectorDrawableCompat.create(getResources(), R.drawable.bg_button_group_backward, getTheme()));
+
+		if (!hasCamera()) {
+			buttonScanQR.setVisibility(View.GONE);
+		}
+		groupServiceControls.getViewTreeObserver()
+			.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+				@Override
+				public void onGlobalLayout() {
+					AndroidCommonUtils.removeGlobalLayoutListener(
+						groupServiceControls.getViewTreeObserver(), this);
+
+					screenCenter = takeCenter(viewAnchor);
+					groupServiceControlsOrigin = takeOrigin(groupServiceControls);
+					magicImageOrigin = takeOrigin(magicImage);
+					scanQRButtonOrigin = takeOrigin(buttonScanQR);
+					toggleServiceButtonCenter = takeCenter(buttonServiceToggle);
+					groupServiceControls.getLayoutParams().height
+						= groupServiceControls.getHeight();
+
+					onComplete.run();
+				}
+			});
+	}
+
+
+	private void onViewInitialized(boolean restored) {
+		boolean isRunning = CopyPasteService.isRunning(this);
+
+		if (isRunning) {
+			COPY_PASTE_SERVICE_CALLBACK.restoreCallback();
+
+			displayServiceEnabledState();
+			bringMagicHintOut();
+		}
+		else {
+			if (restored) {
+				bringMagicHintIn();
+			}
+			else {
+				groupServiceControls.postDelayed(this::transitionMagicHintIn, 550);
+			}
+			displayServiceDisabledState();
+		}
+		int buttonShowQRLocation[] = new int[2];
+		int inset = -Math.round(24 * getResources().getDisplayMetrics().density);
+
+		buttonShowQR.getLocationInWindow(buttonShowQRLocation);
+		buttonShowQR.getHitRect(buttonShowQRHitRect);
+		buttonShowQRHitRect.offset(buttonShowQRLocation[0], buttonShowQRLocation[1]);
+		buttonShowQRHitRect.inset(inset, inset);
 	}
 
 	@Override
@@ -179,27 +523,147 @@ public class MainActivity extends AppCompatActivity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		ButterKnife.bind(this);
-		initializeView();
 
-		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-			.addPrimaryClipChangedListener(this);
+		if (savedInstanceState == null) {
+			CopyPasteApplication.CopyPasteConnection connection = CopyPasteApplication.get(this)
+				.getCommonKeyValueStorage()
+				.load(CopyPasteApplication.KEY_CURRENTLY_CONNECTED_IP_ADDRESS,
+					CopyPasteApplication.CopyPasteConnection.class);
+
+			if (connection != null) {
+				switch (connection.role) {
+					case CopyPasteService.ROLE_CLIENT:
+						textNetworkAddressHint.setText(R.string.label_service_client_hint);
+						break;
+					case CopyPasteService.ROLE_SERVER:
+						textNetworkAddressHint.setText(R.string.label_service_browser_hint);
+						break;
+				}
+				textNetworkAddress.setText(getNetworkAddressFormatted(connection.ipAddress));
+			}
+		}
+		initializeView(() -> onViewInitialized(savedInstanceState != null));
 	}
 
 	@Override
 	protected void onDestroy() {
-		((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)) // preserve new line
-			.removePrimaryClipChangedListener(this);
+		COPY_PASTE_SERVICE_CALLBACK.onStop();
 
 		ButterKnife.unbind(this);
 		super.onDestroy();
 	}
 
+
 	@Override
-	public void onPrimaryClipChanged() {
-		updateClipDataDisplay();
-		Log.d(TAG, ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).getPrimaryClip()
-			.toString());
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		switch (requestCode) {
+			case IntentIntegrator.REQUEST_CODE:
+				if (resultCode == RESULT_OK) {
+					IntentResult intentResult = IntentIntegrator // preserve new line
+						.parseActivityResult(requestCode, resultCode, data);
+
+					if (intentResult != null) {
+						Uri uri = Uri.parse(intentResult.getContents());
+
+						if ("clpbrd".equals(uri.getScheme())) {
+							ProgressDialog progress = new ProgressDialog(this,
+								R.style.ProgressDialog_Generic);
+							{
+								progress.setCancelable(false);
+								progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+								progress.setMessage(
+									getString(R.string.title_dialog_progress_connecting));
+							}
+							progress.show();
+
+							CopyPasteService.registerCallback(COPY_PASTE_SERVICE_CALLBACK);
+							CopyPasteService.registerCallback(new CopyPasteService.Callback() {
+								@Override
+								public void onStart(@CopyPasteService.RoleDef int role,
+									String ipAddress) {
+									textNetworkAddress.setText(
+										getNetworkAddressFormatted(ipAddress));
+
+									textNetworkAddressHint.setText(
+										R.string.label_service_client_hint);
+
+									transitionServiceEnabledState();
+									transitionMagicHintOut();
+
+									anyway();
+								}
+
+								@Override
+								public void onStop() {
+									anyway();
+								}
+
+								@Override
+								public void onError() {
+									new AlertDialog.Builder(MainActivity.this).setTitle(
+										R.string.title_dialog_error_connection)
+										.setMessage(
+											getString(R.string.message_dialog_error_connection,
+												getString(R.string.application_name)))
+										.setPositiveButton(R.string.button_positive_generic, null)
+										.setOnDismissListener(dialog -> {
+											bringMagicHintIn();
+											displayServiceDisabledState();
+										})
+										.show();
+
+									anyway();
+								}
+
+								@Override
+								public void onClipChanged(ClipData clipData) {
+									/* Nothing to do */
+								}
+
+								private void anyway() {
+									CopyPasteService.unregisterCallback(this);
+									progress.dismiss();
+								}
+							});
+							getMainHandler().post(
+								() -> CopyPasteService.startClient(this, uri.getAuthority(),
+									BuildConfig.SERVER_PORT));
+						}
+						else {
+							new AlertDialog.Builder(this).setTitle(
+								R.string.title_dialog_error_bad_qr)
+								.setMessage(getString(R.string.message_dialog_error_bad_qr,
+									getString(R.string.application_name)))
+								.setPositiveButton(R.string.button_positive_generic, null)
+								.show();
+						}
+					}
+				}
+				break;
+		}
+	}
+
+	private static PointF takeCenter(View v) {
+		return new PointF(v.getX() + v.getWidth() / 2.f, v.getY() + v.getHeight() / 2.f);
+	}
+
+	private static PointF takeOrigin(View v) {
+		return new PointF(v.getX(), v.getY());
 	}
 
 
+	@NonNull
+	public String getNetworkAddressFormatted(String ipAddress) {
+		return String.format(Locale.US, "http://%s:%d", ipAddress, BuildConfig.SERVER_PORT);
+	}
+
+
+	private static Drawable getAnimatedVectorDrawable(@NonNull Context context, @DrawableRes int drawableResId) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+			return AnimatedVectorDrawableCompat.create(context, drawableResId);
+		}
+		else {
+			return AndroidCommonUtils.getDrawableFrom(context, drawableResId);
+		}
+	}
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<dimen name="gap_size_default">9.17dp</dimen>
+	<dimen name="gap_size_three_halves">13.76dp</dimen>
+	<dimen name="gap_size_two_times">18.34dp</dimen>
+
+	<dimen name="text_size_address">21dp</dimen>
+	<dimen name="text_size_address_hint">11dp</dimen>
+
+</resources>

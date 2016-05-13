@@ -1,91 +1,163 @@
 <!DOCTYPE html>
-
-<html>
+<html style="background: @color/webPaletteBackground url(res/background.svg); background-repeat: no-repeat; background-size: cover; height: 100%; overflow: hidden">
 <head>
-    <style type="text/css">
-        .centered {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        /* bring your own prefixes */
-        transform: translate(-50%, -50%);
+    <style>
+        @font-face {
+        font-family: fontDefault;
+        src: url(res/Raleway-ExtraBold.ttf);
         }
-        .activeArea {
-        min-width: 490px;
+        @font-face {
+        font-family: fontError;
+        src: url(res/Ubuntu-R.ttf);
+        }
+        body {
+        font-family: fontDefault;
+        color: @color/webPaletteWhite;
+        overflow: auto;
+        height: 100%;
+        margin:0;
+        }
+        a {
+        color: @color/webPaletteWhite;
+        }
+        .noselect {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        }
+        #entryClipboardText {
+        width: 100%;
+        min-height: 40%;
+        margin: auto;
+        resize: none;
+        box-sizing: border-box;
+        background: @color/webPaletteEntryBackground;
+        border-color: @color/webPaletteEntryStroke;
+        border-width: 1pt;
+        border-radius: 2.5pt;
+        }
+        .buttonTitle {
         display: inline-block;
-        max-width:80%;
-        max-height:75%;
-        padding:25px;
-        border: 5px solid white;
-        border-radius:20px;
+        position: absolute;
+        left: 5pt;
+        top: 20pt;
+        right: 5pt;
+        vertical-align: middle;
+        letter-spacing: -0.75pt;
+        margin: 0;
+        padding: 0;
         }
-        .entryArea {
-        min-width:440px;
-        max-width:100%;
-        width:100%;
-        box-sizing:border-box;
-        position:relative;
+        .floatingButton {
+        box-shadow: 1.2pt 1.5pt 2pt 0 @color/webPaletteShadowColor;
+        border-radius: 50%;
+        cursor: pointer;
+
+        transition: box-shadow 0.16s linear;
         }
-        .buttonGeneric {
-        min-width:100px;
-        position:relative;
+        .floatingButton:active {
+        box-shadow: 1.2pt 1.5pt 15pt 0 @color/webPaletteShadowColor;
         }
     </style>
 </head>
-<body style="background:#BABABA">
-<div id="group-root" class="centered activeArea" style="background:#73AD21">
-    <textarea id="entry-text" class="entryArea" rows="4" style="float:top"></textarea>
-
-    <button id="button-send" class="buttonGeneric" style="float:left">&lt; OUT</button>
-    <button id="button-recv" class="buttonGeneric" style="float:right" data-clipboard-target="entry-text">IN &gt;</button>
+<body style="display: none">
+<div style="width: 60%; min-width: 480pt; margin: 0 auto">
+    <div id="content" style="display: block; margin-top: 10pt">
+        <div style="text-align: center">
+            <img style="margin:auto" src="res/logo_product.svg"/>
+            <p style="width: 76%; margin: auto; margin-bottom: 10pt">@string/web_page_subtitle</p>
+        </div>
+        <div style="position: relative; display: block;">
+            <textarea id="entryClipboardText"></textarea>
+            <p id="labelError"
+               style="display: none; text-align: left; color: red; font-family: fontError; font-size: 8pt;  margin: 0; padding: 0">
+                @string/web_page_connection_error_format</p>
+        </div>
+        <div style="position:relative; bottom: 10pt; top: 0; text-align: center;">
+            <div style="margin: 15pt; margin-top: 30pt">
+                <div id="buttonSend" class="floatingButton" title="Ctrl+Enter"
+                     style="display: inline-block; position: relative; margin: 0 auto; width: 52pt; height: 52pt">
+                    <svg width="52pt" height="52pt">
+                        <circle cx="26pt" cy="26pt" r="26pt" fill="#4fc80d"></circle>
+                    </svg>
+                    <p class="buttonTitle noselect">@string/web_page_button_send</p>
+                </div>
+            </div>
+            <a href="http://ego-cms.com/" class="noselect" style="text-decoration: none;">
+                @string/web_page_credits
+                <img src="res/logo_authority.png"
+                     style="vertical-align: middle; margin-left: 5pt; width: 47pt; height: 27pt"/>
+            </a>
+        </div>
+    </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"
-        type="text/javascript"></script>
-<script src="script/ZeroClipboard.min.js" type="text/javascript"></script>
+<script src="script/jquery-1.12.3.min.js"></script>
 <script type="text/javascript">
-    function updateButtons() {
-        $("#button-send").prop("disabled", !$("#entry-text").val());
-        $("#button-recv").prop("disabled", !$("#entry-text").val());
-    }
-    updateButtons();
+		function updateButtons() {
+			$("#buttonSend").prop("disabled", !$("#entryClipboardText").val());
+		}
+		updateButtons();
 
-    $("#entry-text").prop("disabled", true);
-    $("#entry-text").bind("input propertychange", updateButtons);
+		$("#entryClipboardText").prop("disabled", true);
+		$("#entryClipboardText").bind("input propertychange", updateButtons);
 
-    // Establish remote clipboard connection
-    $.get("clipboard", function(data) {
-        $("#entry-text").val(data.text);
-        $("#button-send").prop("disabled", !$("#entry-text").val());
-        $("#button-recv").prop("disabled", !$("#entry-text").val());
+		// Establish remote clipboard connection
+		$.get("clipboard", function(data) {
+			var socket = new WebSocket("ws://" + data.host + ":" + data.port);
 
-        var socket = new WebSocket("ws://" + data.host + ":" + data.port);
+			$("#entryClipboardText").val(data.text);
+			$("#buttonSend").prop("disabled", true);
 
-        socket.onopen = function() {
-            $("#entry-text").prop("disabled", false);
-        };
-        socket.onclose = function() {
-            $("#entry-text").val("");
-            $("#entry-text").prop("disabled", true);
-            $("#button-send").prop("disabled", !$("#entry-text").val());
-            $("#button-recv").prop("disabled", !$("#entry-text").val());
+			socket.onopen = function() {
+				$("#entryClipboardText").prop("disabled", false);
+				$("#buttonSend").prop("disabled", false);
+				$("#labelError").hide();
+			};
+			socket.onclose = function() {
+				$("#entryClipboardText").prop("disabled", true);
+				$("#buttonSend").prop("disabled", true);
 
-            location.reload();
-        };
-        socket.onmessage = function(message) {
-            $("#entry-text").val(message.data);
-        }
-        socket.onerror = function(error) {
-            alert("Error occurred: " + error.message);
-        };
+				var errorMessage = "@string/web_page_connection_error_format"
+				$("#labelError").html(errorMessage.replace("%s", window.location.href));
+				$("#labelError").show();
 
-        $("#button-send").click(function() {
-            socket.send($("#entry-text").val());
-        });
-    });
+				setTimeout(function() { location.reload(); }, 5000);
+			};
+			socket.onmessage = function(message) {
+				$("#entryClipboardText").val(message.data);
+			}
+			socket.onerror = function(error) {
+				$("#labelError").text(error.message);
+				$("#labelError").show();
+			};
 
-    new ZeroClipboard(document.getElementById("button-recv"));
+            $("#entryClipboardText").keydown(function (event) {
+                if (event.ctrlKey && event.keyCode == 13) {
+                    socket.send($("#entryClipboardText").val());
+                }
+                return true;
+            });
+			$("#buttonSend").click(function() {
+				socket.send($("#entryClipboardText").val());
+			});
+		});
 </script>
+<script type="text/javascript">
+    var topMarginMin = $("#content").css("margin-top").replace("px", "");
 
+    function onWindowSizeChanged() {
+        $("#content").css("margin-top", Math.max(($('body').height() - $("#content").height()) / 2, topMarginMin) + "px");
+    }
+    $(window).resize(onWindowSizeChanged);
+    $(window).load(function () {
+        $('body').fadeIn(650);
+        $("#entryClipboardText").css("min-height", ($('body').height() * 0.4) + "px");
+
+        onWindowSizeChanged();
+    });
+</script>
 </body>
 </html>
