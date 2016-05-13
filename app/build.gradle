@@ -36,7 +36,7 @@ android {
         targetSdkVersion 23
 
         versionCode 1
-        versionName "0.9"
+        versionName "0.9.36"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -59,7 +59,7 @@ android {
 }
 
 dependencies {
-    def suffixAndroidSupportVersion='23.3.0'
+    def suffixAndroidSupportVersion='23.4.0'
 
     compile fileTree(dir: 'libs', include: '*.jar')
     compile "com.android.support:animated-vector-drawable:${suffixAndroidSupportVersion}"
