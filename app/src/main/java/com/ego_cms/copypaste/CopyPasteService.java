@@ -246,7 +246,7 @@ public class CopyPasteService extends Service {
 				= NetworkInterface.getNetworkInterfaces(); networkInterfaces.hasMoreElements(); ) {
 				NetworkInterface networkInterface = networkInterfaces.nextElement();
 
-				if (!networkInterface.isLoopback()) {
+				if (isNetworkInterfaceOfType(networkInterface, "wlan", "eth")) {
 					for (Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
 						addresses.hasMoreElements(); ) {
 						InetAddress address = addresses.nextElement();
@@ -263,6 +263,22 @@ public class CopyPasteService extends Service {
 		}
 		return null;
 	}
+
+	private static boolean isNetworkInterfaceOfType(NetworkInterface networkInterface, String... namePrefixes)
+		throws SocketException {
+
+		if (networkInterface.isUp() && !networkInterface.isLoopback()) {
+			String name = networkInterface.getName();
+
+			for (String namePrefix : namePrefixes) {
+				if (name.startsWith(namePrefix)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 
 	public static boolean isLocalNetworkAvailable(@NonNull Context context) {
 		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(
