@@ -11,16 +11,8 @@ apply plugin: 'com.neenbedankt.android-apt'
 apply plugin: 'me.tatarka.retrolambda'
 
 android {
-    signingConfigs {
-        release {
-            keyAlias 'android'
-            keyPassword 'ego-cms'
-            storeFile file('/Users/vladrishe/Documents/Android Studio/clipboard-android/app/release.jks')
-            storePassword 'ego-cms'
-        }
-    }
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "23.0.3"
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -52,8 +44,8 @@ android {
         }
         release {
             minifyEnabled false
+
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
         }
     }
 }
