@@ -16,7 +16,7 @@ Screenshots
 ![Screen2](http://lh3.googleusercontent.com/jqirkrffYEwKFdl0EQCIyDBr8Q8wqLagPiH3tXrT7j6tEfxc8ZctAQSgcaNy-QkPID8=h310-rw)
 ![Screen3](http://lh3.googleusercontent.com/UDjSXwPC6ohzBxWsSZiiqqqXqzb_k0N7kvUVx794qvdIgs4bi5_D5tTp9EdrwesQkg=h310-rw)
 
-Contribute
+How to contribute
 ----------
 Will be ready soon...
 
