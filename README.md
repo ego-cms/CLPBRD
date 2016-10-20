@@ -1,3 +1,4 @@
+[![eGo-CMS](https://raw.githubusercontent.com/ego-cms/Resources/master/Badges_by_EGO/by_EGO.png)](https://ego-cms.com/?utm_source=github)
 CLPBRD - Clipboard
 ==================
 
