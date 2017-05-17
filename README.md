@@ -5,7 +5,7 @@ CLPBRD - Clipboard
 ==================
 
 <a href="https://play.google.com/store/apps/details?id=com.ego_cms.copypaste">
-	<img src="http://steverichey.github.io/google-play-badge-svg/img/en_get.svg"/>
+	<img src="https://rawgit.com/ego-cms/Resources/master/Badges_stores/googlePlay.svg"/>
 </a>
 
 Share clipboard between your phone, desktop or another phone!
